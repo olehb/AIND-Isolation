@@ -2,7 +2,8 @@
 test your agent's strength against a set of known agents using tournament.py
 and include the results in your report.
 """
-import random
+
+# import random
 
 
 class SearchTimeout(Exception):
@@ -34,8 +35,12 @@ def custom_score(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    # TODO: finish this function!
-    raise NotImplementedError
+    if game.is_winner(player):
+        return float("+inf")
+    if game.is_loser(player):
+        return float("-inf")
+    return float(len(game.get_legal_moves(player))
+                 - len(game.get_legal_moves(game.get_opponent(player))))
 
 
 def custom_score_2(game, player):
@@ -209,11 +214,50 @@ class MinimaxPlayer(IsolationPlayer):
                 each helper function or else your agent will timeout during
                 testing.
         """
+        self.check_time()
+
+        best_move = (-1, -1)
+        for i in range(depth):
+            _, best_move = self.__max_value(game, game.active_player, i)
+        return best_move
+
+    def __max_value(self, game, player, plies_left):
+        self.check_time()
+        best_move = (-1, -1)
+        best_score = float("-inf")
+        for move in game.get_legal_moves():
+            current_game = game.forecast_move(move)
+            if plies_left <= 0:
+                current_score = self.score(current_game, player)
+            else:
+                current_score, _ = self.__min_value(current_game,
+                                                    player,
+                                                    plies_left-1)
+            if current_score > best_score:
+                best_score = current_score
+                best_move = move
+        return best_score, best_move
+
+    def __min_value(self, game, player, plies_left):
+        self.check_time()
+        best_move = (-1, -1)
+        best_score = float("+inf")
+        for move in game.get_legal_moves():
+            current_game = game.forecast_move(move)
+            if plies_left <= 0:
+                current_score = self.score(current_game, player)
+            else:
+                current_score, _ = self.__max_value(current_game,
+                                                    player,
+                                                    plies_left-1)
+            if current_score < best_score:
+                best_score = current_score
+                best_move = move
+        return best_score, best_move
+
+    def check_time(self):
         if self.time_left() < self.TIMER_THRESHOLD:
             raise SearchTimeout()
-
-        # TODO: finish this function!
-        raise NotImplementedError
 
 
 class AlphaBetaPlayer(IsolationPlayer):
