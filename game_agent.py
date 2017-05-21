@@ -132,6 +132,40 @@ class IsolationPlayer:
         if self.time_left() < self.TIMER_THRESHOLD:
             raise SearchTimeout()
 
+    def _max_value(self, game, player, plies_left, alpha=None, beta=None):
+        self.check_time()
+        best_move = self.NO_MOVE
+        best_score = _WORST_SCORE
+        for move in game.get_legal_moves():
+            current_game = game.forecast_move(move)
+            if plies_left <= 0:
+                current_score = self.score(current_game, player)
+            else:
+                current_score, _ = self._min_value(current_game,
+                                                   player,
+                                                   plies_left-1)
+            if current_score > best_score:
+                best_score = current_score
+                best_move = move
+        return best_score, best_move
+
+    def _min_value(self, game, player, plies_left, alpha=None, beta=None):
+        self.check_time()
+        best_move = self.NO_MOVE
+        best_score = _BEST_SCORE
+        for move in game.get_legal_moves():
+            current_game = game.forecast_move(move)
+            if plies_left <= 0:
+                current_score = self.score(current_game, player)
+            else:
+                current_score, _ = self._max_value(current_game,
+                                                   player,
+                                                   plies_left-1)
+            if current_score < best_score:
+                best_score = current_score
+                best_move = move
+        return best_score, best_move
+
 
 class MinimaxPlayer(IsolationPlayer):
     """Game-playing agent that chooses a move using depth-limited minimax
@@ -226,42 +260,8 @@ class MinimaxPlayer(IsolationPlayer):
         self.check_time()
 
         best_move = self.NO_MOVE
-        _, best_move = self.__max_value(game, game.active_player, depth-1)
+        _, best_move = self._max_value(game, game.active_player, depth-1)
         return best_move
-
-    def __max_value(self, game, player, plies_left, alpha=None, beta=None):
-        self.check_time()
-        best_move = self.NO_MOVE
-        best_score = _WORST_SCORE
-        for move in game.get_legal_moves():
-            current_game = game.forecast_move(move)
-            if plies_left <= 0:
-                current_score = self.score(current_game, player)
-            else:
-                current_score, _ = self.__min_value(current_game,
-                                                    player,
-                                                    plies_left-1)
-            if current_score > best_score:
-                best_score = current_score
-                best_move = move
-        return best_score, best_move
-
-    def __min_value(self, game, player, plies_left, alpha=None, beta=None):
-        self.check_time()
-        best_move = self.NO_MOVE
-        best_score = _BEST_SCORE
-        for move in game.get_legal_moves():
-            current_game = game.forecast_move(move)
-            if plies_left <= 0:
-                current_score = self.score(current_game, player)
-            else:
-                current_score, _ = self.__max_value(current_game,
-                                                    player,
-                                                    plies_left-1)
-            if current_score < best_score:
-                best_score = current_score
-                best_move = move
-        return best_score, best_move
 
 
 class AlphaBetaPlayer(IsolationPlayer):
@@ -353,8 +353,8 @@ class AlphaBetaPlayer(IsolationPlayer):
         self.check_time()
 
         best_move = self.NO_MOVE
-        _, best_move = self.__max_value(game, game.active_player, depth-1,
-                                        alpha, beta)
+        _, best_move = self._max_value(game, game.active_player, 0,
+                                       alpha, beta)
         return best_move
 
         best_move = self.NO_MOVE
