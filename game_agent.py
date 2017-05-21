@@ -5,8 +5,8 @@ and include the results in your report.
 
 # import random
 
-_BEST_SCORE = float("+inf")
-_WORST_SCORE = float("-inf")
+_MAX_SCORE = float("+inf")
+_MIN_SCORE = float("-inf")
 
 
 class SearchTimeout(Exception):
@@ -39,9 +39,9 @@ def custom_score(game, player):
         The heuristic value of the current game state to the specified player.
     """
     if game.is_winner(player):
-        return _BEST_SCORE
+        return _MAX_SCORE
     if game.is_loser(player):
-        return _WORST_SCORE
+        return _MIN_SCORE
     return float(len(game.get_legal_moves(player))
                  - len(game.get_legal_moves(game.get_opponent(player))))
 
@@ -135,7 +135,7 @@ class IsolationPlayer:
     def _max_value(self, game, player, plies_left, alpha=None, beta=None):
         self.check_time()
         best_move = self.NO_MOVE
-        best_score = _WORST_SCORE
+        best_score = _MIN_SCORE
         current_score = alpha
         for move in game.get_legal_moves():
             current_game = game.forecast_move(move)
@@ -156,7 +156,7 @@ class IsolationPlayer:
     def _min_value(self, game, player, plies_left, alpha=None, beta=None):
         self.check_time()
         best_move = self.NO_MOVE
-        best_score = _BEST_SCORE
+        best_score = _MAX_SCORE
         current_score = beta
         for move in game.get_legal_moves():
             current_game = game.forecast_move(move)
@@ -322,7 +322,7 @@ class AlphaBetaPlayer(IsolationPlayer):
         # Return the best move from the last completed search iteration
         return best_move
 
-    def alphabeta(self, game, depth, alpha=_WORST_SCORE, beta=_BEST_SCORE):
+    def alphabeta(self, game, depth, alpha=_MIN_SCORE, beta=_MAX_SCORE):
         """Implement depth-limited minimax search with alpha-beta pruning as
         described in the lectures.
 
