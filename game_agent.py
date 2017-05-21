@@ -136,34 +136,42 @@ class IsolationPlayer:
         self.check_time()
         best_move = self.NO_MOVE
         best_score = _WORST_SCORE
+        current_score = alpha
         for move in game.get_legal_moves():
             current_game = game.forecast_move(move)
             if plies_left <= 0:
                 current_score = self.score(current_game, player)
             else:
+                current_alpha = None if alpha is None else best_score
                 current_score, _ = self._min_value(current_game,
-                                                   player,
-                                                   plies_left-1)
+                                                   player, plies_left-1,
+                                                   current_alpha, beta)
             if current_score > best_score:
                 best_score = current_score
                 best_move = move
+            if beta is not None and best_score >= beta:
+                break
         return best_score, best_move
 
     def _min_value(self, game, player, plies_left, alpha=None, beta=None):
         self.check_time()
         best_move = self.NO_MOVE
         best_score = _BEST_SCORE
+        current_score = beta
         for move in game.get_legal_moves():
             current_game = game.forecast_move(move)
             if plies_left <= 0:
                 current_score = self.score(current_game, player)
             else:
+                current_beta = None if beta is None else best_score
                 current_score, _ = self._max_value(current_game,
-                                                   player,
-                                                   plies_left-1)
+                                                   player, plies_left-1,
+                                                   alpha, current_beta)
             if current_score < best_score:
                 best_score = current_score
                 best_move = move
+            if alpha is not None and best_score <= alpha:
+                break
         return best_score, best_move
 
 
@@ -301,11 +309,20 @@ class AlphaBetaPlayer(IsolationPlayer):
             (-1, -1) if there are no available legal moves.
         """
         self.time_left = time_left
+        best_move = self.NO_MOVE
 
-        # TODO: finish this function!
-        raise NotImplementedError
+        try:
+            # The try/except block will automatically catch the exception
+            # raised when the timer is about to expire.
+            return self.alphabeta(game, self.search_depth)
 
-    def alphabeta(self, game, depth, alpha=float("-inf"), beta=float("inf")):
+        except SearchTimeout:
+            pass  # Handle any actions required after timeout as needed
+
+        # Return the best move from the last completed search iteration
+        return best_move
+
+    def alphabeta(self, game, depth, alpha=_WORST_SCORE, beta=_BEST_SCORE):
         """Implement depth-limited minimax search with alpha-beta pruning as
         described in the lectures.
 
@@ -353,11 +370,6 @@ class AlphaBetaPlayer(IsolationPlayer):
         self.check_time()
 
         best_move = self.NO_MOVE
-        _, best_move = self._max_value(game, game.active_player, 0,
+        _, best_move = self._max_value(game, game.active_player, depth-1,
                                        alpha, beta)
-        return best_move
-
-        best_move = self.NO_MOVE
-        for move in game.get_legal_moves():
-            best_move = move
         return best_move
