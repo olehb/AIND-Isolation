@@ -217,8 +217,7 @@ class MinimaxPlayer(IsolationPlayer):
         self.check_time()
 
         best_move = (-1, -1)
-        for i in range(depth):
-            _, best_move = self.__max_value(game, game.active_player, i)
+        _, best_move = self.__max_value(game, game.active_player, depth-1)
         return best_move
 
     def __max_value(self, game, player, plies_left):
