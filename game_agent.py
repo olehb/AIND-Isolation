@@ -69,8 +69,16 @@ def custom_score_2(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    # TODO: finish this function!
-    raise NotImplementedError
+    if game.is_winner(player):
+        return _MAX_SCORE
+    if game.is_loser(player):
+        return _MIN_SCORE
+
+    total_moves = game.move_count
+    own_moves = len(game.get_legal_moves(player))
+    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+
+    return float(own_moves - (1+0.1*total_moves)*opp_moves)
 
 
 def custom_score_3(game, player):
