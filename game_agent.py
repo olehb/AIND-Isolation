@@ -392,3 +392,61 @@ class AlphaBetaPlayer(IsolationPlayer):
         _, best_move = self._max_value(game, game.active_player, depth,
                                        alpha, beta)
         return best_move
+
+    def _max_value(self, game, player, plies_left, alpha, beta):
+        self.check_time()
+        log = get_log(plies_left, 'MAX')
+        best_move = self.NO_MOVE
+        best_score = _MIN_SCORE
+        moves = game.get_legal_moves()
+        log(f"legal moves {moves}")
+        for move in moves:
+            current_game = game.forecast_move(move)
+            # print(current_game.to_string())
+            if plies_left <= 1:
+                current_score = self.score(current_game, player)
+            else:
+                current_alpha = max(best_score, alpha)
+                current_score, _ = self._min_value(current_game,
+                                                   player, plies_left-1,
+                                                   current_alpha, beta)
+            if current_score > best_score:
+                best_score = current_score
+                best_move = move
+            if best_score >= beta:
+                log(f"{move} beta={beta}, best_score={best_score} cutting off...")
+                break
+        log(f"{best_move} -> {best_score}")
+        return best_score, best_move
+
+    def _min_value(self, game, player, plies_left, alpha, beta):
+        self.check_time()
+        log = get_log(plies_left, 'MIN')
+        best_move = self.NO_MOVE
+        best_score = _MAX_SCORE
+        moves = game.get_legal_moves()
+        log(f"legal moves {moves}")
+        for move in moves:
+            current_game = game.forecast_move(move)
+            # print(current_game.to_string())
+            if plies_left <= 1:
+                current_score = self.score(current_game, player)
+            else:
+                current_beta = min(best_score, beta)
+                current_score, _ = self._max_value(current_game,
+                                                   player, plies_left-1,
+                                                   alpha, current_beta)
+            if current_score < best_score:
+                best_score = current_score
+                best_move = move
+            if best_score <= alpha:
+                log(f"{move} alpha={alpha}, best_score={best_score} cutting off...")
+                break
+        log(f"{best_move} -> {best_score}")
+        return best_score, best_move
+
+def get_log(intend, prefix):
+    def log(msg):
+        print('>'*intend+f' {prefix} '+msg)
+    return log
+
