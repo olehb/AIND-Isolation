@@ -333,8 +333,10 @@ class AlphaBetaPlayer(IsolationPlayer):
         try:
             # The try/except block will automatically catch the exception
             # raised when the timer is about to expire.
-            for i in range(self.search_depth):
-                best_move = self.alphabeta(game, i+1)
+            depth = 1
+            while True:
+                best_move = self.alphabeta(game, depth)
+                depth += 1
         except SearchTimeout:
             pass  # Handle any actions required after timeout as needed
 
@@ -387,8 +389,6 @@ class AlphaBetaPlayer(IsolationPlayer):
                 testing.
         """
         self.check_time()
-
-        best_move = self.NO_MOVE
         _, best_move = self._max_value(game, game.active_player, depth,
                                        alpha, beta)
         return best_move
@@ -447,6 +447,7 @@ class AlphaBetaPlayer(IsolationPlayer):
 
 def get_log(intend, prefix):
     def log(msg):
-        print('>'*intend+f' {prefix} '+msg)
+        pass
+        # print('>'*intend+f' {prefix} '+msg)
     return log
 
