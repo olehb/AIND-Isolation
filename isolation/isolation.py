@@ -37,7 +37,7 @@ class Board(object):
     BLANK = 0
     NOT_MOVED = None
 
-    def __init__(self, player_1, player_2, width=7, height=7):
+    def __init__(self, player_1, player_2, width=7, height=7, raw_state=None):
         self.width = width
         self.height = height
         self.move_count = 0
@@ -48,9 +48,15 @@ class Board(object):
 
         # The last 3 entries of the board state includes initiative (0 for
         # player 1, 1 for player 2) player 2 last move, and player 1 last move
-        self._board_state = [Board.BLANK] * (width * height + 3)
-        self._board_state[-1] = Board.NOT_MOVED
-        self._board_state[-2] = Board.NOT_MOVED
+        if raw_state is not None:
+            from math import sqrt
+            self._board_state = raw_state[:]
+            self.width = int(sqrt(len(raw_state)-3))
+            self.height = self.width
+        else:
+            self._board_state = [Board.BLANK] * (width * height + 3)
+            self._board_state[-1] = Board.NOT_MOVED
+            self._board_state[-2] = Board.NOT_MOVED
 
     def hash(self):
         return str(self._board_state).__hash__()
@@ -259,6 +265,7 @@ class Board(object):
                       (1, -2), (1, 2), (2, -1), (2, 1)]
         valid_moves = [(r + dr, c + dc) for dr, dc in directions
                        if self.move_is_legal((r + dr, c + dc))]
+        random.seed(4)
         random.shuffle(valid_moves)
         return valid_moves
 
@@ -317,8 +324,10 @@ class Board(object):
         time_millis = lambda: 1000 * timeit.default_timer()
 
         while True:
+            # print(self.print_board())
 
             legal_player_moves = self.get_legal_moves()
+            # print(legal_player_moves)
             game_copy = self.copy()
 
             move_start = time_millis()

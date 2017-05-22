@@ -7,6 +7,7 @@ and include the results in your report.
 
 _MAX_SCORE = float("+inf")
 _MIN_SCORE = float("-inf")
+_DELIM = '>'
 
 
 class SearchTimeout(Exception):
@@ -135,43 +136,61 @@ class IsolationPlayer:
     def _max_value(self, game, player, plies_left, alpha=None, beta=None):
         self.check_time()
         best_move = self.NO_MOVE
-        best_score = _MIN_SCORE
-        current_score = alpha
-        for move in game.get_legal_moves():
+        best_score = alpha or _MIN_SCORE
+        moves = game.get_legal_moves()
+        print(_DELIM*plies_left + "MAX: current_pos=%s, plies=%s, legal_moves=%s" % (game.get_player_location(game.active_player),
+                                                  plies_left,
+                                                  moves))
+        # print(game.to_string())
+        for move in moves:
             current_game = game.forecast_move(move)
-            if plies_left <= 0:
+            if plies_left <= 1:
                 current_score = self.score(current_game, player)
             else:
                 current_alpha = None if alpha is None else best_score
                 current_score, _ = self._min_value(current_game,
                                                    player, plies_left-1,
                                                    current_alpha, beta)
+            print(_DELIM*plies_left + "MAX: ", move, current_score)
             if current_score > best_score:
                 best_score = current_score
                 best_move = move
             if beta is not None and best_score >= beta:
+                print(_DELIM*plies_left + f"beta={beta}, best_score={best_score} cutting off...")
                 break
+        print(_DELIM*plies_left + "MAX: current_pos=%s, plies=%s, best_move=%s" % (game.get_player_location(game.active_player),
+                                                  plies_left,
+                                                  best_move))
         return best_score, best_move
 
     def _min_value(self, game, player, plies_left, alpha=None, beta=None):
         self.check_time()
         best_move = self.NO_MOVE
-        best_score = _MAX_SCORE
-        current_score = beta
-        for move in game.get_legal_moves():
+        best_score = beta or _MAX_SCORE
+        moves = game.get_legal_moves()
+        print(_DELIM*plies_left + "MIN: current_pos=%s, plies=%s, legal_moves=%s" % (game.get_player_location(game.active_player),
+                                                  plies_left,
+                                                  moves))
+        # print(game.to_string())
+        for move in moves:
             current_game = game.forecast_move(move)
-            if plies_left <= 0:
+            if plies_left <= 1:
                 current_score = self.score(current_game, player)
             else:
                 current_beta = None if beta is None else best_score
                 current_score, _ = self._max_value(current_game,
                                                    player, plies_left-1,
                                                    alpha, current_beta)
+            print(_DELIM*plies_left + "MIN: ", move, current_score)
             if current_score < best_score:
                 best_score = current_score
                 best_move = move
             if alpha is not None and best_score <= alpha:
+                print(_DELIM*plies_left + f"alpha={alpha}, best_score={best_score} cutting off...")
                 break
+        print(_DELIM*plies_left + "MIN: current_pos=%s, plies=%s, best_move=%s" % (game.get_player_location(game.active_player),
+                                                  plies_left,
+                                                  best_move))
         return best_score, best_move
 
 
@@ -268,7 +287,7 @@ class MinimaxPlayer(IsolationPlayer):
         self.check_time()
 
         best_move = self.NO_MOVE
-        _, best_move = self._max_value(game, game.active_player, depth-1)
+        _, best_move = self._max_value(game, game.active_player, depth)
         return best_move
 
 
@@ -314,8 +333,8 @@ class AlphaBetaPlayer(IsolationPlayer):
         try:
             # The try/except block will automatically catch the exception
             # raised when the timer is about to expire.
-            return self.alphabeta(game, self.search_depth)
-
+            for i in range(self.search_depth):
+                best_move = self.alphabeta(game, i+1)
         except SearchTimeout:
             pass  # Handle any actions required after timeout as needed
 
@@ -370,6 +389,6 @@ class AlphaBetaPlayer(IsolationPlayer):
         self.check_time()
 
         best_move = self.NO_MOVE
-        _, best_move = self._max_value(game, game.active_player, depth-1,
+        _, best_move = self._max_value(game, game.active_player, depth,
                                        alpha, beta)
         return best_move
