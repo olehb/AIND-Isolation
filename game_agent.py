@@ -156,7 +156,7 @@ class IsolationPlayer:
     def _max_value(self, game, player, plies_left):
         self.check_time()
         best_move = self.NO_MOVE
-        best_score = alpha or _MIN_SCORE
+        best_score = _MIN_SCORE
         moves = game.get_legal_moves()
         for move in moves:
             current_game = game.forecast_move(move)
@@ -173,7 +173,7 @@ class IsolationPlayer:
     def _min_value(self, game, player, plies_left):
         self.check_time()
         best_move = self.NO_MOVE
-        best_score = beta or _MAX_SCORE
+        best_score = _MAX_SCORE
         moves = game.get_legal_moves()
         for move in moves:
             current_game = game.forecast_move(move)
