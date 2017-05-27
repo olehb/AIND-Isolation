@@ -19,5 +19,10 @@ class TestGameBoard(unittest.TestCase):
     def test_diag_reflect(self):
         self.assertEqual(self.game.diag_reflect().diag_reflect().hash(), self.game.hash())
 
+    def test_mutations(self):
+        self.assertEqual(len(list(self.game.mutations())), 6)
+        # for board in self.game.mutations():
+        #     print(board.to_string())
+
 if __name__ == '__main__':
     unittest.main()
