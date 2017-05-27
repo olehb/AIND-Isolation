@@ -170,7 +170,7 @@ class IsolationPlayer:
                 best_move = move
         return best_score, best_move
 
-    def _min_value(self, game, player, plies_left, alpha=None, beta=None):
+    def _min_value(self, game, player, plies_left):
         self.check_time()
         best_move = self.NO_MOVE
         best_score = beta or _MAX_SCORE
