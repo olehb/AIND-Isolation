@@ -61,6 +61,33 @@ class Board(object):
     def hash(self):
         return str(self._board_state).__hash__()
 
+    def diag_reflect(self):
+        diag = lambda i, w: (i%w)*w + i//w
+        return self.__mutate(diag)
+
+    def rotate(self):
+        rot = lambda i, w: (w - 1 -(i%w))*w + i//w
+        return self.__mutate(rot)
+
+    def __mutate(self, mutator):
+        def mutate_state(mutator, state, width):
+            # Mutating game board
+            mutated_state = [state[mutator(i, width)] for i in range(len(state)-3)]
+            # Transforming player states accordingly
+            for i in range(-3,0):
+                mutated_state.append(mutator(state[i], width))
+            return mutated_state
+
+        mutated_state = mutate_state(mutator, self._board_state, self.width)
+        return Board(self._player_1, self._player_2, raw_state=mutated_state)
+
+    def mutations(self):
+        mutated_board = self
+        for i in range(3):
+            yield mutated_board.diag_reflect()
+            mutated_board = mutated_board.rotate()
+            yield mutated_board
+
     @property
     def active_player(self):
         """The object registered as the player holding initiative in the

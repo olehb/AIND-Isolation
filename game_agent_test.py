@@ -10,9 +10,14 @@ class TestGameBoard(unittest.TestCase):
         player_2 = AlphaBetaPlayer()
         self.game = Board(player_1, player_2, raw_state=state)
 
-    def test_alphabeta(self):
+    def _test_alphabeta(self):
         self.game.play()
+    
+    def test_rotate(self):
+        self.assertEqual(self.game.rotate().rotate().rotate().rotate().hash(), self.game.hash())
 
+    def test_diag_reflect(self):
+        self.assertEqual(self.game.diag_reflect().diag_reflect().hash(), self.game.hash())
 
 if __name__ == '__main__':
     unittest.main()
