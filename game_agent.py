@@ -108,7 +108,7 @@ def custom_score_3(game, player):
     if game.is_loser(player):
         return _MIN_SCORE
 
-    border_move_discount = 0.5
+    border_move_discount = 0.5 + 0.01*game.move_count
     own_moves = game.get_legal_moves(player)
     opp_moves = game.get_legal_moves(game.get_opponent(player))
 
@@ -117,6 +117,31 @@ def custom_score_3(game, player):
 
 def num_border_moves(moves):
     return sum(1 for move in moves if move[0] in [0, 8] or move[1] in [0, 8])
+
+def mutate_state(mutator, state, width):
+    # Mutating game board
+    mutated_state = [state[mutator(i, width)] for i in range(len(state)-3)]
+    # Transforming player states accordingly
+    for i in range(-3,0):
+        mutated_state.append(mutator(state[i], width))
+    return mutated_state
+
+def hash(state):
+    return str(state).__hash__()
+
+def get_mutation_hashes(game):
+    yield game.hash()
+    width = game.width
+    diag = lambda i, w: (i%w)*w + i//w if i is not None else None
+    rot = lambda i, w: (w - 1 -(i%w))*w + i//w if i is not None else None
+    mutated_state = game._board_state
+    # Otherwise it's failing with "Exception: unsupported operand type(s) for %: 'NoneType' and 'int'"
+    if mutated_state is None or width is None:
+        return
+    for i in range(3):
+        yield hash(mutate_state(diag, mutated_state, width))
+        mutated_state = mutate_state(rot, mutated_state, width)
+        yield hash(mutated_state)
 
 
 class IsolationPlayer:
@@ -152,40 +177,6 @@ class IsolationPlayer:
     def check_time(self):
         if self.time_left() < self.TIMER_THRESHOLD:
             raise SearchTimeout()
-
-    def _max_value(self, game, player, plies_left):
-        self.check_time()
-        best_move = self.NO_MOVE
-        best_score = _MIN_SCORE
-        moves = game.get_legal_moves()
-        for move in moves:
-            current_game = game.forecast_move(move)
-            if plies_left <= 1:
-                current_score = self.score(current_game, player)
-            else:
-                current_score, _ = self._min_value(current_game,
-                                                   player, plies_left-1)
-            if current_score > best_score:
-                best_score = current_score
-                best_move = move
-        return best_score, best_move
-
-    def _min_value(self, game, player, plies_left):
-        self.check_time()
-        best_move = self.NO_MOVE
-        best_score = _MAX_SCORE
-        moves = game.get_legal_moves()
-        for move in moves:
-            current_game = game.forecast_move(move)
-            if plies_left <= 1:
-                current_score = self.score(current_game, player)
-            else:
-                current_score, _ = self._max_value(current_game,
-                                                   player, plies_left-1)
-            if current_score < best_score:
-                best_score = current_score
-                best_move = move
-        return best_score, best_move
 
 
 class MinimaxPlayer(IsolationPlayer):
@@ -283,6 +274,40 @@ class MinimaxPlayer(IsolationPlayer):
         best_move = self.NO_MOVE
         _, best_move = self._max_value(game, game.active_player, depth)
         return best_move
+
+    def _max_value(self, game, player, plies_left):
+        self.check_time()
+        best_move = self.NO_MOVE
+        best_score = _MIN_SCORE
+        moves = game.get_legal_moves()
+        for move in moves:
+            current_game = game.forecast_move(move)
+            if plies_left <= 1:
+                current_score = self.score(current_game, player)
+            else:
+                current_score, _ = self._min_value(current_game,
+                                                   player, plies_left-1)
+            if current_score > best_score:
+                best_score = current_score
+                best_move = move
+        return best_score, best_move
+
+    def _min_value(self, game, player, plies_left):
+        self.check_time()
+        best_move = self.NO_MOVE
+        best_score = _MAX_SCORE
+        moves = game.get_legal_moves()
+        for move in moves:
+            current_game = game.forecast_move(move)
+            if plies_left <= 1:
+                current_score = self.score(current_game, player)
+            else:
+                current_score, _ = self._max_value(current_game,
+                                                   player, plies_left-1)
+            if current_score < best_score:
+                best_score = current_score
+                best_move = move
+        return best_score, best_move
 
 
 class AlphaBetaPlayer(IsolationPlayer):
@@ -396,7 +421,7 @@ class AlphaBetaPlayer(IsolationPlayer):
         log(f"legal moves {moves}")
         for move in moves:
             current_game = game.forecast_move(move)
-            # print(current_game.to_string())
+
             if plies_left <= 1:
                 current_score = self.score(current_game, player)
             else:

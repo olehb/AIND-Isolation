@@ -1,6 +1,7 @@
 import unittest
 from isolation import Board
 from game_agent import AlphaBetaPlayer
+from game_agent import get_mutation_hashes
 
 
 class TestGameBoard(unittest.TestCase):
@@ -9,8 +10,9 @@ class TestGameBoard(unittest.TestCase):
         player_1 = AlphaBetaPlayer()
         player_2 = AlphaBetaPlayer()
         self.game = Board(player_1, player_2, raw_state=state)
+        # print(list(get_mutation_hashes(self.game)))
 
-    def _test_alphabeta(self):
+    def test_alphabeta(self):
         self.game.play()
     
     def test_rotate(self):
