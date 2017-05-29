@@ -108,7 +108,7 @@ def custom_score_3(game, player):
     if game.is_loser(player):
         return _MIN_SCORE
 
-    border_move_discount = 0.5 + 0.01*game.move_count
+    border_move_discount = 0.5 + 0.03*game.move_count
     own_moves = game.get_legal_moves(player)
     opp_moves = game.get_legal_moves(game.get_opponent(player))
 
@@ -418,7 +418,7 @@ class AlphaBetaPlayer(IsolationPlayer):
         best_move = self.NO_MOVE
         best_score = _MIN_SCORE
         moves = game.get_legal_moves()
-        log(f"legal moves {moves}")
+        # log(f"legal moves {moves}")
         for move in moves:
             current_game = game.forecast_move(move)
 
@@ -433,9 +433,9 @@ class AlphaBetaPlayer(IsolationPlayer):
                 best_score = current_score
                 best_move = move
             if best_score >= beta:
-                log(f"{move} beta={beta}, best_score={best_score} cutting off...")
+                # log(f"{move} beta={beta}, best_score={best_score} cutting off...")
                 break
-        log(f"{best_move} -> {best_score}")
+        # log(f"{best_move} -> {best_score}")
         return best_score, best_move
 
     def _min_value(self, game, player, plies_left, alpha, beta):
@@ -444,10 +444,9 @@ class AlphaBetaPlayer(IsolationPlayer):
         best_move = self.NO_MOVE
         best_score = _MAX_SCORE
         moves = game.get_legal_moves()
-        log(f"legal moves {moves}")
+        # log(f"legal moves {moves}")
         for move in moves:
             current_game = game.forecast_move(move)
-            # print(current_game.to_string())
             if plies_left <= 1:
                 current_score = self.score(current_game, player)
             else:
@@ -459,9 +458,9 @@ class AlphaBetaPlayer(IsolationPlayer):
                 best_score = current_score
                 best_move = move
             if best_score <= alpha:
-                log(f"{move} alpha={alpha}, best_score={best_score} cutting off...")
+                # log(f"{move} alpha={alpha}, best_score={best_score} cutting off...")
                 break
-        log(f"{best_move} -> {best_score}")
+        # log(f"{best_move} -> {best_score}")
         return best_score, best_move
 
 def get_log(intend, prefix):
