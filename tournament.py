@@ -1,6 +1,8 @@
 """Estimate the strength rating of a student defined heuristic by competing
 against fixed-depth minimax and alpha-beta search agents in a round-robin
 tournament.
+        # import os
+        # print(os.getpid(), self.time_left())
 
 NOTE: All agents are constructed from the student CustomPlayer implementation,
 so any errors present in that class will affect the outcome.
@@ -22,6 +24,7 @@ from sample_players import (RandomPlayer, open_move_score,
                             improved_score, center_score)
 from game_agent import (MinimaxPlayer, AlphaBetaPlayer, custom_score,
                         custom_score_2, custom_score_3)
+from multiprocessing import Process, Queue
 
 NUM_MATCHES = 5  # number of matches against each opponent
 TIME_LIMIT = 150  # number of milliseconds before timeout
@@ -36,6 +39,9 @@ game_agent.py.
 
 Agent = namedtuple("Agent", ["player", "name"])
 
+def play_round_func(game, queue):
+    game.play(TIME_LIMIT, queue)
+
 
 def play_round(cpu_agent, test_agents, win_counts, num_matches):
     """Compare the test agents to the cpu agent in "fair" matches.
@@ -46,10 +52,12 @@ def play_round(cpu_agent, test_agents, win_counts, num_matches):
     """
     timeout_count = 0
     forfeit_count = 0
+    test_agent_names = [a.name for a in test_agents]
     for _ in range(num_matches):
+        processes = []
 
-        games = sum([[Board(cpu_agent.player, agent.player),
-                      Board(agent.player, cpu_agent.player)]
+        games = sum([[Board(cpu_agent.player, agent.player, p1_name=cpu_agent.name, p2_name=agent.name),
+                      Board(agent.player, cpu_agent.player, p2_name=cpu_agent.name, p1_name=agent.name)]
                     for agent in test_agents], [])
 
         # initialize all games with a random move and response
@@ -60,13 +68,20 @@ def play_round(cpu_agent, test_agents, win_counts, num_matches):
 
         # play all games and tally the results
         for game in games:
-            winner, _, termination = game.play(time_limit=TIME_LIMIT)
-            win_counts[winner] += 1
+            q = Queue()
+            p = Process(target=play_round_func, args=(game, q))
+            processes.append((p, q))
+            p.start()
 
-        if termination == "timeout":
-            timeout_count += 1
-        elif winner not in test_agents and termination == "forfeit":
-            forfeit_count += 1
+        for p, q in processes:
+            termination, name = q.get()
+            win_counts[name] += 1
+            p.join()
+
+            if termination == "timeout":
+                timeout_count += 1
+            elif name not in test_agent_names and termination == "forfeit":
+                forfeit_count += 1
 
     return timeout_count, forfeit_count
 
@@ -79,7 +94,7 @@ def update(total_wins, wins):
 
 def play_matches(cpu_agents, test_agents, num_matches):
     """Play matches between the test agent and each cpu_agent individually. """
-    total_wins = {agent.player: 0 for agent in test_agents}
+    total_wins = {agent.name: 0 for agent in test_agents}
     total_timeouts = 0.
     total_forfeits = 0.
     total_matches = 2 * num_matches * len(cpu_agents)
@@ -91,11 +106,11 @@ def play_matches(cpu_agents, test_agents, num_matches):
           .format("", "", *(["Won", "Lost"] * 4)))
 
     for idx, agent in enumerate(cpu_agents):
-        wins = {test_agents[0].player: 0,
-                test_agents[1].player: 0,
-                test_agents[2].player: 0,
-                test_agents[3].player: 0,
-                agent.player: 0}
+        wins = {test_agents[0].name: 0,
+                test_agents[1].name: 0,
+                test_agents[2].name: 0,
+                test_agents[3].name: 0,
+                agent.name: 0}
 
         print("{!s:^9}{:^13}".format(idx + 1, agent.name), end="", flush=True)
 
@@ -104,7 +119,7 @@ def play_matches(cpu_agents, test_agents, num_matches):
         total_forfeits += counts[1]
         total_wins = update(total_wins, wins)
         _total = 2 * num_matches
-        round_totals = sum([[wins[agent.player], _total - wins[agent.player]]
+        round_totals = sum([[wins[agent.name], _total - wins[agent.name]]
                             for agent in test_agents], [])
         print(" {:^5}| {:^5} {:^5}| {:^5} {:^5}| {:^5} {:^5}| {:^5}"
               .format(*round_totals))
@@ -112,7 +127,7 @@ def play_matches(cpu_agents, test_agents, num_matches):
     print("-" * 74)
     print("{:^9}{:^13}{:^13}{:^13}{:^13}{:^13}\n".format(
         "", "Win Rate:",
-        *["{:.1f}%".format(100 * total_wins[a.player] / total_matches)
+        *["{:.1f}%".format(100 * total_wins[a.name] / total_matches)
           for a in test_agents]
     ))
 

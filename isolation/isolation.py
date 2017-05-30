@@ -37,12 +37,14 @@ class Board(object):
     BLANK = 0
     NOT_MOVED = None
 
-    def __init__(self, player_1, player_2, width=7, height=7, raw_state=None):
+    def __init__(self, player_1, player_2, width=7, height=7, raw_state=None, p1_name=None, p2_name=None):
         self.width = width
         self.height = height
         self.move_count = 0
         self._player_1 = player_1
         self._player_2 = player_2
+        self._player_1_name = p1_name
+        self._player_2_name = p2_name
         self._active_player = player_1
         self._inactive_player = player_2
 
@@ -329,7 +331,7 @@ class Board(object):
 
         return out
 
-    def play(self, time_limit=TIME_LIMIT_MILLIS):
+    def play(self, time_limit=TIME_LIMIT_MILLIS, queue=None):
         """Execute a match between the players by alternately soliciting them
         to select a move and applying it in the game.
 
@@ -366,12 +368,21 @@ class Board(object):
                 curr_move = Board.NOT_MOVED
 
             if move_end < 0:
-                return self._inactive_player, move_history, "timeout"
+                if queue is not None:
+                    player_name = self._player_1_name if self._inactive_player == self._player_1 else self._player_2_name
+                    queue.put_nowait(["timeout", player_name])
+                    break
+                else:
+                    return self._inactive_player, move_history, "timeout"
 
             if curr_move not in legal_player_moves:
-                if len(legal_player_moves) > 0:
-                    return self._inactive_player, move_history, "forfeit"
-                return self._inactive_player, move_history, "illegal move"
+                res = "forfeit" if len(legal_player_moves) > 0 else "illegal move"
+                if queue is not None:
+                    player_name = self._player_1_name if self._inactive_player == self._player_1 else self._player_2_name
+                    queue.put_nowait([res, player_name])
+                    break
+                else:
+                    return self._inactive_player, move_history, res
 
             move_history.append(list(curr_move))
 
