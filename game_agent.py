@@ -271,42 +271,48 @@ class MinimaxPlayer(IsolationPlayer):
         """
         self.check_time()
 
-        best_move = self.NO_MOVE
         _, best_move = self._max_value(game, game.active_player, depth)
+        # Uncomment lines below to never forfeit the game
+        # if best_move == self.NO_MOVE and len(game.get_legal_moves()) > 0:
+        #     return game.get_legal_moves()[0]
         return best_move
 
     def _max_value(self, game, player, plies_left):
         self.check_time()
         best_move = self.NO_MOVE
         best_score = _MIN_SCORE
-        moves = game.get_legal_moves()
-        for move in moves:
-            current_game = game.forecast_move(move)
-            if plies_left <= 1:
-                current_score = self.score(current_game, player)
-            else:
-                current_score, _ = self._min_value(current_game,
-                                                   player, plies_left-1)
-            if current_score > best_score:
-                best_score = current_score
-                best_move = move
+        try:
+            for move in game.get_legal_moves():
+                current_game = game.forecast_move(move)
+                if plies_left <= 1:
+                    current_score = self.score(current_game, player)
+                else:
+                    current_score, _ = self._min_value(current_game,
+                                                       player, plies_left-1)
+                if current_score > best_score:
+                    best_score = current_score
+                    best_move = move
+        except SearchTimeout:
+            pass
         return best_score, best_move
 
     def _min_value(self, game, player, plies_left):
         self.check_time()
         best_move = self.NO_MOVE
         best_score = _MAX_SCORE
-        moves = game.get_legal_moves()
-        for move in moves:
-            current_game = game.forecast_move(move)
-            if plies_left <= 1:
-                current_score = self.score(current_game, player)
-            else:
-                current_score, _ = self._max_value(current_game,
-                                                   player, plies_left-1)
-            if current_score < best_score:
-                best_score = current_score
-                best_move = move
+        try:
+            for move in game.get_legal_moves():
+                current_game = game.forecast_move(move)
+                if plies_left <= 1:
+                    current_score = self.score(current_game, player)
+                else:
+                    current_score, _ = self._max_value(current_game,
+                                                       player, plies_left-1)
+                if current_score < best_score:
+                    best_score = current_score
+                    best_move = move
+        except SearchTimeout:
+            pass
         return best_score, best_move
 
 
