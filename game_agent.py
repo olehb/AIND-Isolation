@@ -354,7 +354,9 @@ class AlphaBetaPlayer(IsolationPlayer):
             # raised when the timer is about to expire.
             depth = 1
             while True:
-                best_move = self.alphabeta(game, depth)
+                move = self.alphabeta(game, depth)
+                if move != self.NO_MOVE:
+                    best_move = move
                 depth += 1
         except SearchTimeout:
             pass  # Handle any actions required after timeout as needed

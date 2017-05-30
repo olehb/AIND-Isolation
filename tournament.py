@@ -80,7 +80,7 @@ def play_round(cpu_agent, test_agents, win_counts, num_matches):
 
             if termination == "timeout":
                 timeout_count += 1
-            elif name not in test_agent_names and termination == "forfeit":
+            elif name in test_agent_names and termination == "forfeit":
                 forfeit_count += 1
 
     return timeout_count, forfeit_count
@@ -160,7 +160,7 @@ def main():
         Agent(MinimaxPlayer(score_fn=improved_score), "MM_Improved"),
         Agent(AlphaBetaPlayer(score_fn=open_move_score), "AB_Open"),
         Agent(AlphaBetaPlayer(score_fn=center_score), "AB_Center"),
-        Agent(AlphaBetaPlayer(score_fn=improved_score), "AB_Improved")
+        Agent(AlphaBetaPlayer(score_fn=improved_score), "AB_Improved_CPU")
     ]
 
     print(DESCRIPTION)
