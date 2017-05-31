@@ -275,8 +275,8 @@ class MinimaxPlayer(IsolationPlayer):
 
         _, best_move = self._max_value(game, game.active_player, depth)
         # Uncomment lines below to never forfeit the game
-        # if best_move == self.NO_MOVE and len(game.get_legal_moves()) > 0:
-        #     return game.get_legal_moves()[0]
+        if best_move == self.NO_MOVE and len(game.get_legal_moves()) > 0:
+            return game.get_legal_moves()[0]
         return best_move
 
     def _max_value(self, game, player, plies_left):
@@ -360,12 +360,10 @@ class AlphaBetaPlayer(IsolationPlayer):
         try:
             # The try/except block will automatically catch the exception
             # raised when the timer is about to expire.
-            depth = 1
-            while True:
-                move = self.alphabeta(game, depth)
+            for depth in range(game.width*game.height):
+                move = self.alphabeta(game, depth+1)
                 if move != self.NO_MOVE:
                     best_move = move
-                depth += 1
         except SearchTimeout:
             pass  # Handle any actions required after timeout as needed
 
