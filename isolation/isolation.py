@@ -331,7 +331,7 @@ class Board(object):
 
         return out
 
-    def play(self, time_limit=TIME_LIMIT_MILLIS, queue=None):
+    def play(self, time_limit=TIME_LIMIT_MILLIS):
         """Execute a match between the players by alternately soliciting them
         to select a move and applying it in the game.
 
@@ -368,21 +368,13 @@ class Board(object):
                 curr_move = Board.NOT_MOVED
 
             if move_end < 0:
-                if queue is not None:
-                    player_name = self._player_1_name if self._inactive_player == self._player_1 else self._player_2_name
-                    queue.put_nowait(["timeout", player_name])
-                    break
-                else:
-                    return self._inactive_player, move_history, "timeout"
+                player_name = self._player_1_name if self._inactive_player == self._player_1 else self._player_2_name
+                return "timeout", player_name
 
             if curr_move not in legal_player_moves:
                 res = "forfeit" if len(legal_player_moves) > 0 else "illegal move"
-                if queue is not None:
-                    player_name = self._player_1_name if self._inactive_player == self._player_1 else self._player_2_name
-                    queue.put_nowait([res, player_name])
-                    break
-                else:
-                    return self._inactive_player, move_history, res
+                player_name = self._player_1_name if self._inactive_player == self._player_1 else self._player_2_name
+                return res, player_name
 
             move_history.append(list(curr_move))
 

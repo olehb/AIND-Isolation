@@ -21,7 +21,7 @@ from sample_players import (RandomPlayer, open_move_score,
                             improved_score, center_score)
 from game_agent import (MinimaxPlayer, AlphaBetaPlayer, custom_score,
                         custom_score_2, custom_score_3)
-from multiprocessing import Process, Queue
+from multiprocessing import Pool
 
 NUM_MATCHES = 5  # number of matches against each opponent
 TIME_LIMIT = 150  # number of milliseconds before timeout
@@ -37,7 +37,11 @@ game_agent.py.
 Agent = namedtuple("Agent", ["player", "name"])
 
 
-def play_round(cpu_agent, test_agents, win_counts, num_matches):
+def play_round_func(game):
+    return game.play(TIME_LIMIT)
+
+
+def play_round(cpu_agent, test_agents, win_counts, num_matches, pool):
     """Compare the test agents to the cpu agent in "fair" matches.
 
     "Fair" matches use random starting locations and force the agents to
@@ -47,9 +51,8 @@ def play_round(cpu_agent, test_agents, win_counts, num_matches):
     timeout_count = 0
     forfeit_count = 0
     test_agent_names = [a.name for a in test_agents]
-    processes = []
+    round_games = []
     for _ in range(num_matches):
-
         games = sum([[Board(cpu_agent.player, agent.player, p1_name=cpu_agent.name, p2_name=agent.name),
                       Board(agent.player, cpu_agent.player, p2_name=cpu_agent.name, p1_name=agent.name)]
                     for agent in test_agents], [])
@@ -60,18 +63,10 @@ def play_round(cpu_agent, test_agents, win_counts, num_matches):
             for game in games:
                 game.apply_move(move)
 
-        # play all games and tally the results
-        for game in games:
-            q = Queue()
-            p = Process(target=game.play, args=(TIME_LIMIT, q))
-            processes.append((p, q))
-            p.start()
+        round_games.extend(games)
 
-    for p, q in processes:
-        termination, name = q.get()
+    for termination, name in pool.map(play_round_func, round_games):
         win_counts[name] += 1
-        p.join()
-
         if termination == "timeout":
             timeout_count += 1
         elif name in test_agent_names and termination == "forfeit":
@@ -99,24 +94,25 @@ def play_matches(cpu_agents, test_agents, num_matches):
     print("{:^9}{:^13} {:^5}| {:^5} {:^5}| {:^5} {:^5}| {:^5} {:^5}| {:^5}"
           .format("", "", *(["Won", "Lost"] * 4)))
 
-    for idx, agent in enumerate(cpu_agents):
-        wins = {test_agents[0].name: 0,
-                test_agents[1].name: 0,
-                test_agents[2].name: 0,
-                test_agents[3].name: 0,
-                agent.name: 0}
+    with Pool() as pool:
+        for idx, agent in enumerate(cpu_agents):
+            wins = {test_agents[0].name: 0,
+                    test_agents[1].name: 0,
+                    test_agents[2].name: 0,
+                    test_agents[3].name: 0,
+                    agent.name: 0}
 
-        print("{!s:^9}{:^13}".format(idx + 1, agent.name), end="", flush=True)
+            print("{!s:^9}{:^13}".format(idx + 1, agent.name), end="", flush=True)
 
-        counts = play_round(agent, test_agents, wins, num_matches)
-        total_timeouts += counts[0]
-        total_forfeits += counts[1]
-        total_wins = update(total_wins, wins)
-        _total = 2 * num_matches
-        round_totals = sum([[wins[agent.name], _total - wins[agent.name]]
-                            for agent in test_agents], [])
-        print(" {:^5}| {:^5} {:^5}| {:^5} {:^5}| {:^5} {:^5}| {:^5}"
-              .format(*round_totals))
+            counts = play_round(agent, test_agents, wins, num_matches, pool)
+            total_timeouts += counts[0]
+            total_forfeits += counts[1]
+            total_wins = update(total_wins, wins)
+            _total = 2 * num_matches
+            round_totals = sum([[wins[agent.name], _total - wins[agent.name]]
+                                for agent in test_agents], [])
+            print(" {:^5}| {:^5} {:^5}| {:^5} {:^5}| {:^5} {:^5}| {:^5}"
+                  .format(*round_totals))
 
     print("-" * 74)
     print("{:^9}{:^13}{:^13}{:^13}{:^13}{:^13}\n".format(
