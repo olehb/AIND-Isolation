@@ -39,6 +39,7 @@ game_agent.py.
 
 Agent = namedtuple("Agent", ["player", "name"])
 
+
 def play_round_func(game, queue):
     game.play(TIME_LIMIT, queue)
 
@@ -53,8 +54,8 @@ def play_round(cpu_agent, test_agents, win_counts, num_matches):
     timeout_count = 0
     forfeit_count = 0
     test_agent_names = [a.name for a in test_agents]
+    processes = []
     for _ in range(num_matches):
-        processes = []
 
         games = sum([[Board(cpu_agent.player, agent.player, p1_name=cpu_agent.name, p2_name=agent.name),
                       Board(agent.player, cpu_agent.player, p2_name=cpu_agent.name, p1_name=agent.name)]
@@ -73,15 +74,15 @@ def play_round(cpu_agent, test_agents, win_counts, num_matches):
             processes.append((p, q))
             p.start()
 
-        for p, q in processes:
-            termination, name = q.get()
-            win_counts[name] += 1
-            p.join()
+    for p, q in processes:
+        termination, name = q.get()
+        win_counts[name] += 1
+        p.join()
 
-            if termination == "timeout":
-                timeout_count += 1
-            elif name in test_agent_names and termination == "forfeit":
-                forfeit_count += 1
+        if termination == "timeout":
+            timeout_count += 1
+        elif name in test_agent_names and termination == "forfeit":
+            forfeit_count += 1
 
     return timeout_count, forfeit_count
 
