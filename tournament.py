@@ -37,10 +37,6 @@ game_agent.py.
 Agent = namedtuple("Agent", ["player", "name"])
 
 
-def play_round_func(game, queue):
-    game.play(TIME_LIMIT, queue)
-
-
 def play_round(cpu_agent, test_agents, win_counts, num_matches):
     """Compare the test agents to the cpu agent in "fair" matches.
 
@@ -67,7 +63,7 @@ def play_round(cpu_agent, test_agents, win_counts, num_matches):
         # play all games and tally the results
         for game in games:
             q = Queue()
-            p = Process(target=play_round_func, args=(game, q))
+            p = Process(target=game.play, args=(TIME_LIMIT, q))
             processes.append((p, q))
             p.start()
 
