@@ -3,7 +3,7 @@ test your agent's strength against a set of known agents using tournament.py
 and include the results in your report.
 """
 
-# import random
+from random import random
 
 _MAX_SCORE = float("+inf")
 _MIN_SCORE = float("-inf")
@@ -49,8 +49,11 @@ def custom_score(game, player):
         return _MAX_SCORE
     if game.is_loser(player):
         return _MIN_SCORE
-    return float(len(game.get_legal_moves(player))
-                 - len(game.get_legal_moves(game.get_opponent(player))))
+
+    own_moves = game.get_legal_moves(player)
+    opp_moves = game.get_legal_moves(game.get_opponent(player))
+
+    return float(len(own_moves) - (1+random())*len(opp_moves))
 
 
 def custom_score_2(game, player):

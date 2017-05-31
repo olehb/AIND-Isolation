@@ -294,7 +294,7 @@ class Board(object):
                       (1, -2), (1, 2), (2, -1), (2, 1)]
         valid_moves = [(r + dr, c + dc) for dr, dc in directions
                        if self.move_is_legal((r + dr, c + dc))]
-        random.seed(4)
+        # random.seed(4)
         random.shuffle(valid_moves)
         return valid_moves
 
