@@ -78,7 +78,9 @@ def custom_score_2(game, player):
     own_moves = len(game.get_legal_moves(player))
     opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
 
-    return float(own_moves - (1+0.1*total_moves)*opp_moves)
+    # Average move count per game is 35.5
+    average_moves = 35.5
+    return float(own_moves - (1+total_moves/average_moves)*opp_moves)
 
 
 def custom_score_3(game, player):
