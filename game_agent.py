@@ -110,15 +110,15 @@ def custom_score_3(game, player):
     if game.is_loser(player):
         return _MIN_SCORE
 
-    border_move_discount = 0.5 + 0.03*game.move_count
+    border_move_discount = 0.5 + game.move_count/35.5
     own_moves = game.get_legal_moves(player)
     opp_moves = game.get_legal_moves(game.get_opponent(player))
 
-    return float(len(own_moves)-border_move_discount*num_border_moves(own_moves)
-                 - len(opp_moves)+border_move_discount*num_border_moves(opp_moves))
+    return float(len(own_moves)-border_move_discount*num_border_moves(own_moves, game)
+                 - len(opp_moves)+border_move_discount*num_border_moves(opp_moves, game))
 
-def num_border_moves(moves):
-    return sum(1 for move in moves if move[0] in [0, 8] or move[1] in [0, 8])
+def num_border_moves(moves, game):
+    return sum(1 for move in moves if move[0] in [0, game.height-1] or move[1] in [0, game.width-1])
 
 def mutate_state(mutator, state, width):
     # Mutating game board
