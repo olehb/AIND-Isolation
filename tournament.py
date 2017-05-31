@@ -1,9 +1,6 @@
 """Estimate the strength rating of a student defined heuristic by competing
 against fixed-depth minimax and alpha-beta search agents in a round-robin
 tournament.
-        # import os
-        # print(os.getpid(), self.time_left())
-
 NOTE: All agents are constructed from the student CustomPlayer implementation,
 so any errors present in that class will affect the outcome.
 
