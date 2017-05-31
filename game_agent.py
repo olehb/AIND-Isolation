@@ -9,6 +9,12 @@ _MAX_SCORE = float("+inf")
 _MIN_SCORE = float("-inf")
 _DELIM = '>'
 
+"""
+Experimentally determined number of average moves per game,
+depending on board size, e.g. it takes ~35.5 moves to play on 7x7 board 
+"""
+_AVG_MOVES = {49: 35.5}
+
 
 class SearchTimeout(Exception):
     """Subclass base exception for code clarity. """
@@ -78,8 +84,7 @@ def custom_score_2(game, player):
     own_moves = len(game.get_legal_moves(player))
     opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
 
-    # Average move count per game is 35.5
-    average_moves = 35.5
+    average_moves = _AVG_MOVES.get(game.width*game.height, total_moves)
     return float(own_moves - (1+total_moves/average_moves)*opp_moves)
 
 
@@ -110,7 +115,8 @@ def custom_score_3(game, player):
     if game.is_loser(player):
         return _MIN_SCORE
 
-    border_move_discount = 0.5 + game.move_count/35.5
+    average_moves = _AVG_MOVES.get(game.width*game.height, game.move_count)
+    border_move_discount = 0.5 + game.move_count/average_moves
     own_moves = game.get_legal_moves(player)
     opp_moves = game.get_legal_moves(game.get_opponent(player))
 
@@ -118,7 +124,9 @@ def custom_score_3(game, player):
                  - len(opp_moves)+border_move_discount*num_border_moves(opp_moves, game))
 
 def num_border_moves(moves, game):
-    return sum(1 for move in moves if move[0] in [0, game.height-1] or move[1] in [0, game.width-1])
+    return sum(1 for move in moves 
+               if move[0] in [0, game.height-1] 
+               or move[1] in [0, game.width-1])
 
 def mutate_state(mutator, state, width):
     # Mutating game board
