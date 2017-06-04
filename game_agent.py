@@ -5,7 +5,7 @@ and include the results in your report.
 
 from random import random
 
-_MAX_SCORE = float("+inf")
+_MAX_SCORE = float("inf")
 _MIN_SCORE = float("-inf")
 _DELIM = '>'
 
@@ -80,33 +80,34 @@ def custom_score_2(game, player):
     if game.is_loser(player):
         return _MIN_SCORE
 
-    blank_spaces = game.get_blank_spaces()
-    if len(blank_spaces) <= game.width*game.height/2:
+    blank_spaces = set(game.get_blank_spaces())
+    if len(blank_spaces) <= game.width*game.height/2.5:
         own_location = game.get_player_location(player)
-        own_unreachable_spaces = check_partition(own_location, set(blank_spaces))
+        own_unreachable_spaces, own_move_count = check_partition(own_location, blank_spaces, set(), set(), 0)
         opp_location = game.get_player_location(game.get_opponent(player))
-        opp_unreachable_spaces = check_partition(opp_location, set(blank_spaces))
-        if opp_unreachable_spaces != own_unreachable_spaces:
-            if not opp_unreachable_spaces & own_unreachable_spaces:
-                if len(opp_unreachable_spaces) > len(own_unreachable_spaces):
-                    return _MAX_SCORE
-                return _MIN_SCORE
-            return 10*(len(opp_unreachable_spaces) - len(own_unreachable_spaces))
-    return custom_score_3(game, player)
+        opp_unreachable_spaces, opp_move_count = check_partition(opp_location, blank_spaces, set(), set(), 0)
+
+        if not ((blank_spaces - own_unreachable_spaces) & (blank_spaces - opp_unreachable_spaces)):
+            # This means players are located in separate partitions, and one with more remaining moves wins
+            return _MAX_SCORE if own_move_count > opp_move_count else _MIN_SCORE
+        return float(own_move_count - opp_move_count)
+    return custom_score(game, player)
 
 
-def check_partition(location, blank_spaces):
+def check_partition(location, blank_spaces, visited_nodes, global_visited_nodes, i):
     """
     Check if all available blank spaces
     """
-    for move in get_moves(location, blank_spaces):
-        blank_spaces.remove(move)
-        check_partition(move, blank_spaces)
-    return blank_spaces
+    longest_path = i
+    global_visited_nodes.add(location)
+    for move in get_moves(location, blank_spaces, visited_nodes):
+        _, current_longest_path = check_partition(move, blank_spaces, visited_nodes | {move}, global_visited_nodes, i+1)
+        if current_longest_path > longest_path:
+            longest_path = current_longest_path
+    return blank_spaces - global_visited_nodes, longest_path
 
 
-
-def get_moves(move, blank_spaces):
+def get_moves(move, blank_spaces, visited_nodes):
     """
     Get available moves within given blank spaces
     """
@@ -114,7 +115,7 @@ def get_moves(move, blank_spaces):
     directions = [(-2, -1), (-2, 1), (-1, -2), (-1, 2),
                   (1, -2), (1, 2), (2, -1), (2, 1)]
     moves = [(r + dr, c + dc) for dr, dc in directions]
-    return filter(lambda m: m in blank_spaces, moves)
+    return filter(lambda m: m in blank_spaces and m not in visited_nodes, moves)
 
 
 def custom_score_3(game, player):

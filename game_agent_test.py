@@ -45,28 +45,39 @@ class TestGameBoard(unittest.TestCase):
 
         blank_spaces = {(1, 2), (3, 3), (5, 2), (6, 4), (7, 6)}
         location = (0, 0)
-        self.assertEqual(set(), check_partition(location, set(blank_spaces)))
+        unreachable_spaces, max_move_count = check_partition(location, blank_spaces, set(), set(), 0)
+        self.assertEqual(set(), unreachable_spaces)
+        self.assertEqual(5, max_move_count)
 
         blank_spaces.add((0, 1))
-        self.assertEqual({(0, 1),}, check_partition(location, set(blank_spaces)))
+        unreachable_spaces, max_move_count = check_partition(location, blank_spaces, set(), set(), 0)
+        self.assertEqual({(0, 1),}, unreachable_spaces)
+        self.assertEqual(5, max_move_count)
 
         blank_spaces.add((4, 5))
-        self.assertEqual({(0, 1),}, check_partition(location, set(blank_spaces)))
+        unreachable_spaces, max_move_count = check_partition(location, blank_spaces, set(), set(), 0)
+        self.assertEqual({(0, 1),}, unreachable_spaces)
+        self.assertEqual(5, max_move_count)
 
         blank_spaces.add((6, 0))
-        self.assertEqual({(0, 1),}, check_partition(location, set(blank_spaces)))
-
-        blank_spaces.add((6, 0))
-        self.assertEqual({(0, 1),}, check_partition(location, set(blank_spaces)))
+        unreachable_spaces, max_move_count = check_partition(location, blank_spaces, set(), set(), 0)
+        self.assertEqual({(0, 1),}, unreachable_spaces)
+        self.assertEqual(6, max_move_count)
 
         blank_spaces.add((6, 7))
-        self.assertEqual({(0, 1), (6, 7)}, check_partition(location, set(blank_spaces)))
+        unreachable_spaces, max_move_count = check_partition(location, blank_spaces, set(), set(), 0)
+        self.assertEqual({(0, 1), (6, 7)}, unreachable_spaces)
+        self.assertEqual(6, max_move_count)
 
         blank_spaces.add((2, 6))
-        self.assertEqual({(0, 1), (6, 7)}, check_partition(location, set(blank_spaces)))
+        unreachable_spaces, max_move_count = check_partition(location, blank_spaces, set(), set(), 0)
+        self.assertEqual({(0, 1), (6, 7)}, unreachable_spaces)
+        self.assertEqual(6, max_move_count)
 
         blank_spaces.add((0, 7))
-        self.assertEqual({(0, 1), (6, 7)}, check_partition(location, set(blank_spaces)))
+        unreachable_spaces, max_move_count = check_partition(location, blank_spaces, set(), set(), 0)
+        self.assertEqual({(0, 1), (6, 7)}, unreachable_spaces)
+        self.assertEqual(7, max_move_count)
 
 if __name__ == '__main__':
     unittest.main()
