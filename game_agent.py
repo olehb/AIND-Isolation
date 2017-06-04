@@ -11,7 +11,7 @@ _DELIM = '>'
 
 """
 Experimentally determined number of average moves per game,
-depending on board size, e.g. it takes ~35.5 moves to play on 7x7 board 
+depending on board size, e.g. it takes ~35.5 moves to play on 7x7 board
 """
 _AVG_MOVES = {49: 35.5}
 
@@ -82,29 +82,22 @@ def custom_score_2(game, player):
 
     blank_spaces = game.get_blank_spaces()
     if len(blank_spaces) <= game.width*game.height/2:
-        own_location = game.get_player_location(player) 
+        own_location = game.get_player_location(player)
         own_unvisited_spaces = check_partition(own_location, set(blank_spaces))
         opp_location = game.get_player_location(game.get_opponent(player))
         opp_unvisited_spaces = check_partition(opp_location, set(blank_spaces))
         if opp_unvisited_spaces != own_unvisited_spaces:
-            opp_unv_spaces_count = len(opp_unvisited_spaces)
-            own_unv_spaces_count = len(own_unvisited_spaces)
-            return len(opp_unvisited_spaces) - len(own_unvisited_spaces)
-
-            if len(opp_unvisited_spaces & own_unvisited_spaces) == 0:
-                print(game.to_string())
+            if not opp_unvisited_spaces & own_unvisited_spaces:
                 if len(opp_unvisited_spaces) > len(own_unvisited_spaces):
                     return _MAX_SCORE
-                else:
-                    return _MIN_SCORE
-            else:
-                return 10*(len(opp_unvisited_spaces) - len(own_unvisited_spaces))
+                return _MIN_SCORE
+            return 10*(len(opp_unvisited_spaces) - len(own_unvisited_spaces))
     return custom_score_3(game, player)
 
 
 def check_partition(location, blank_spaces):
     """
-    Check if all available blank spaces 
+    Check if all available blank spaces
     """
     for move in get_moves(location, blank_spaces):
         blank_spaces.remove(move)
@@ -114,6 +107,9 @@ def check_partition(location, blank_spaces):
 
 
 def get_moves(move, blank_spaces):
+    """
+    Get available moves within given blank spaces
+    """
     r, c = move
     directions = [(-2, -1), (-2, 1), (-1, -2), (-1, 2),
                   (1, -2), (1, 2), (2, -1), (2, 1)]
@@ -157,19 +153,19 @@ def custom_score_3(game, player):
                  - len(opp_moves)+border_move_discount*num_border_moves(opp_moves, game))
 
 def num_border_moves(moves, game):
-    return sum(1 for move in moves 
-               if move[0] in [0, game.height-1] 
+    return sum(1 for move in moves
+               if move[0] in [0, game.height-1]
                or move[1] in [0, game.width-1])
 
 def mutate_state(mutator, state, width):
     # Mutating game board
     mutated_state = [state[mutator(i, width)] for i in range(len(state)-3)]
     # Transforming player states accordingly
-    for i in range(-3,0):
+    for i in range(-3, 0):
         mutated_state.append(mutator(state[i], width))
     return mutated_state
 
-def hash(state):
+def hash_state(state):
     return str(state).__hash__()
 
 def get_mutation_hashes(game):
@@ -181,10 +177,10 @@ def get_mutation_hashes(game):
     # Otherwise it's failing with "Exception: unsupported operand type(s) for %: 'NoneType' and 'int'"
     if mutated_state is None or width is None:
         return
-    for i in range(3):
-        yield hash(mutate_state(diag, mutated_state, width))
+    for _ in range(3):
+        yield hash_state(mutate_state(diag, mutated_state, width))
         mutated_state = mutate_state(rot, mutated_state, width)
-        yield hash(mutated_state)
+        yield hash_state(mutated_state)
 
 
 class IsolationPlayer:
@@ -517,4 +513,3 @@ def get_log(intend, prefix):
         pass
         # print('>'*intend+f' {prefix} '+msg)
     return log
-
