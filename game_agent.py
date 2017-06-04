@@ -3,11 +3,17 @@ test your agent's strength against a set of known agents using tournament.py
 and include the results in your report.
 """
 
-# import random
+from random import random
 
-_MAX_SCORE = float("+inf")
+_MAX_SCORE = float("inf")
 _MIN_SCORE = float("-inf")
 _DELIM = '>'
+
+"""
+Experimentally determined number of average moves per game,
+depending on board size, e.g. it takes ~35.5 moves to play on 7x7 board
+"""
+_AVG_MOVES = {49: 35.5}
 
 
 class SearchTimeout(Exception):
@@ -43,16 +49,16 @@ def custom_score(game, player):
         return _MAX_SCORE
     if game.is_loser(player):
         return _MIN_SCORE
-    return float(len(game.get_legal_moves(player))
-                 - len(game.get_legal_moves(game.get_opponent(player))))
+
+    own_moves = game.get_legal_moves(player)
+    opp_moves = game.get_legal_moves(game.get_opponent(player))
+
+    return float(len(own_moves) - (1+random())*len(opp_moves))
 
 
 def custom_score_2(game, player):
-    """Calculate the heuristic value of a game state from the point of view
-    of the given player.
-
-    Note: this function should be called from within a Player instance as
-    `self.score()` -- you should not need to call this function directly.
+    """
+    Calculates score based on partitions
 
     Parameters
     ----------
@@ -74,11 +80,42 @@ def custom_score_2(game, player):
     if game.is_loser(player):
         return _MIN_SCORE
 
-    total_moves = game.move_count
-    own_moves = len(game.get_legal_moves(player))
-    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+    blank_spaces = set(game.get_blank_spaces())
+    if len(blank_spaces) <= game.width*game.height/2.5:
+        own_location = game.get_player_location(player)
+        own_unreachable_spaces, own_move_count = check_partition(own_location, blank_spaces, set(), set(), 0)
+        opp_location = game.get_player_location(game.get_opponent(player))
+        opp_unreachable_spaces, opp_move_count = check_partition(opp_location, blank_spaces, set(), set(), 0)
 
-    return float(own_moves - (1+0.1*total_moves)*opp_moves)
+        if not ((blank_spaces - own_unreachable_spaces) & (blank_spaces - opp_unreachable_spaces)):
+            # This means players are located in separate partitions, and one with more remaining moves wins
+            return _MAX_SCORE if own_move_count > opp_move_count else _MIN_SCORE
+        return float(own_move_count - opp_move_count)
+    return custom_score(game, player)
+
+
+def check_partition(location, blank_spaces, visited_nodes, global_visited_nodes, i):
+    """
+    Check if all available blank spaces
+    """
+    longest_path = i
+    global_visited_nodes.add(location)
+    for move in get_moves(location, blank_spaces, visited_nodes):
+        _, current_longest_path = check_partition(move, blank_spaces, visited_nodes | {move}, global_visited_nodes, i+1)
+        if current_longest_path > longest_path:
+            longest_path = current_longest_path
+    return blank_spaces - global_visited_nodes, longest_path
+
+
+def get_moves(move, blank_spaces, visited_nodes):
+    """
+    Get available moves within given blank spaces
+    """
+    r, c = move
+    directions = [(-2, -1), (-2, 1), (-1, -2), (-1, 2),
+                  (1, -2), (1, 2), (2, -1), (2, 1)]
+    moves = [(r + dr, c + dc) for dr, dc in directions]
+    return filter(lambda m: m in blank_spaces and m not in visited_nodes, moves)
 
 
 def custom_score_3(game, player):
@@ -108,25 +145,28 @@ def custom_score_3(game, player):
     if game.is_loser(player):
         return _MIN_SCORE
 
-    border_move_discount = 0.5 + 0.03*game.move_count
+    average_moves = _AVG_MOVES.get(game.width*game.height, game.move_count)
+    border_move_discount = 0.5 + game.move_count/average_moves
     own_moves = game.get_legal_moves(player)
     opp_moves = game.get_legal_moves(game.get_opponent(player))
 
-    return float(len(own_moves)-border_move_discount*num_border_moves(own_moves)
-                 - len(opp_moves)+border_move_discount*num_border_moves(opp_moves))
+    return float(len(own_moves)-border_move_discount*num_border_moves(own_moves, game)
+                 - len(opp_moves)+border_move_discount*num_border_moves(opp_moves, game))
 
-def num_border_moves(moves):
-    return sum(1 for move in moves if move[0] in [0, 8] or move[1] in [0, 8])
+def num_border_moves(moves, game):
+    return sum(1 for move in moves
+               if move[0] in [0, game.height-1]
+               or move[1] in [0, game.width-1])
 
 def mutate_state(mutator, state, width):
     # Mutating game board
     mutated_state = [state[mutator(i, width)] for i in range(len(state)-3)]
     # Transforming player states accordingly
-    for i in range(-3,0):
+    for i in range(-3, 0):
         mutated_state.append(mutator(state[i], width))
     return mutated_state
 
-def hash(state):
+def hash_state(state):
     return str(state).__hash__()
 
 def get_mutation_hashes(game):
@@ -138,10 +178,10 @@ def get_mutation_hashes(game):
     # Otherwise it's failing with "Exception: unsupported operand type(s) for %: 'NoneType' and 'int'"
     if mutated_state is None or width is None:
         return
-    for i in range(3):
-        yield hash(mutate_state(diag, mutated_state, width))
+    for _ in range(3):
+        yield hash_state(mutate_state(diag, mutated_state, width))
         mutated_state = mutate_state(rot, mutated_state, width)
-        yield hash(mutated_state)
+        yield hash_state(mutated_state)
 
 
 class IsolationPlayer:
@@ -273,8 +313,8 @@ class MinimaxPlayer(IsolationPlayer):
 
         _, best_move = self._max_value(game, game.active_player, depth)
         # Uncomment lines below to never forfeit the game
-        # if best_move == self.NO_MOVE and len(game.get_legal_moves()) > 0:
-        #     return game.get_legal_moves()[0]
+        if best_move == self.NO_MOVE and len(game.get_legal_moves()) > 0:
+            return game.get_legal_moves()[0]
         return best_move
 
     def _max_value(self, game, player, plies_left):
@@ -358,12 +398,10 @@ class AlphaBetaPlayer(IsolationPlayer):
         try:
             # The try/except block will automatically catch the exception
             # raised when the timer is about to expire.
-            depth = 1
-            while True:
-                move = self.alphabeta(game, depth)
+            for depth in range(game.width*game.height):
+                move = self.alphabeta(game, depth+1)
                 if move != self.NO_MOVE:
                     best_move = move
-                depth += 1
         except SearchTimeout:
             pass  # Handle any actions required after timeout as needed
 
@@ -476,4 +514,3 @@ def get_log(intend, prefix):
         pass
         # print('>'*intend+f' {prefix} '+msg)
     return log
-
