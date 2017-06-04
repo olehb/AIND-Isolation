@@ -83,15 +83,15 @@ def custom_score_2(game, player):
     blank_spaces = game.get_blank_spaces()
     if len(blank_spaces) <= game.width*game.height/2:
         own_location = game.get_player_location(player)
-        own_unvisited_spaces = check_partition(own_location, set(blank_spaces))
+        own_unreachable_spaces = check_partition(own_location, set(blank_spaces))
         opp_location = game.get_player_location(game.get_opponent(player))
-        opp_unvisited_spaces = check_partition(opp_location, set(blank_spaces))
-        if opp_unvisited_spaces != own_unvisited_spaces:
-            if not opp_unvisited_spaces & own_unvisited_spaces:
-                if len(opp_unvisited_spaces) > len(own_unvisited_spaces):
+        opp_unreachable_spaces = check_partition(opp_location, set(blank_spaces))
+        if opp_unreachable_spaces != own_unreachable_spaces:
+            if not opp_unreachable_spaces & own_unreachable_spaces:
+                if len(opp_unreachable_spaces) > len(own_unreachable_spaces):
                     return _MAX_SCORE
                 return _MIN_SCORE
-            return 10*(len(opp_unvisited_spaces) - len(own_unvisited_spaces))
+            return 10*(len(opp_unreachable_spaces) - len(own_unreachable_spaces))
     return custom_score_3(game, player)
 
 
