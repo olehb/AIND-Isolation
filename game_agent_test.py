@@ -1,7 +1,7 @@
 import unittest
 from isolation import Board
 from game_agent import AlphaBetaPlayer
-from game_agent import get_mutation_hashes
+from game_agent import get_mutation_hashes, check_partition
 
 
 class TestGameBoard(unittest.TestCase):
@@ -10,9 +10,8 @@ class TestGameBoard(unittest.TestCase):
         player_1 = AlphaBetaPlayer()
         player_2 = AlphaBetaPlayer()
         self.game = Board(player_1, player_2, raw_state=state)
-        # print(list(get_mutation_hashes(self.game)))
 
-    def test_alphabeta(self):
+    def _test_alphabeta(self):
         self.game.play()
     
     def test_rotate(self):
@@ -25,6 +24,49 @@ class TestGameBoard(unittest.TestCase):
         self.assertEqual(len(list(self.game.mutations())), 6)
         # for board in self.game.mutations():
         #     print(board.to_string())
+
+    def test_check_partition(self):
+        """
+        	0	1	2	3	4	5	6	7
+        0	x	z						o
+        1			o					
+        2							o	
+        3				o				
+        4						o		
+        5			o					
+        6	o				o			z
+        7							o	
+
+        Legend:
+        x -- start location
+        o -- blank spaces which are reachable from x
+        z -- blank spaces which are unreachable from x
+        """
+
+        blank_spaces = {(1, 2), (3, 3), (5, 2), (6, 4), (7, 6)}
+        location = (0, 0)
+        self.assertEqual(set(), check_partition(location, set(blank_spaces)))
+
+        blank_spaces.add((0, 1))
+        self.assertEqual({(0, 1),}, check_partition(location, set(blank_spaces)))
+
+        blank_spaces.add((4, 5))
+        self.assertEqual({(0, 1),}, check_partition(location, set(blank_spaces)))
+
+        blank_spaces.add((6, 0))
+        self.assertEqual({(0, 1),}, check_partition(location, set(blank_spaces)))
+
+        blank_spaces.add((6, 0))
+        self.assertEqual({(0, 1),}, check_partition(location, set(blank_spaces)))
+
+        blank_spaces.add((6, 7))
+        self.assertEqual({(0, 1), (6, 7)}, check_partition(location, set(blank_spaces)))
+
+        blank_spaces.add((2, 6))
+        self.assertEqual({(0, 1), (6, 7)}, check_partition(location, set(blank_spaces)))
+
+        blank_spaces.add((0, 7))
+        self.assertEqual({(0, 1), (6, 7)}, check_partition(location, set(blank_spaces)))
 
 if __name__ == '__main__':
     unittest.main()

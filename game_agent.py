@@ -57,11 +57,8 @@ def custom_score(game, player):
 
 
 def custom_score_2(game, player):
-    """Calculate the heuristic value of a game state from the point of view
-    of the given player.
-
-    Note: this function should be called from within a Player instance as
-    `self.score()` -- you should not need to call this function directly.
+    """
+    Calculates score based on partitions
 
     Parameters
     ----------
@@ -83,12 +80,45 @@ def custom_score_2(game, player):
     if game.is_loser(player):
         return _MIN_SCORE
 
-    total_moves = game.move_count
-    own_moves = len(game.get_legal_moves(player))
-    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+    blank_spaces = game.get_blank_spaces()
+    if len(blank_spaces) <= game.width*game.height/2:
+        own_location = game.get_player_location(player) 
+        own_unvisited_spaces = check_partition(own_location, set(blank_spaces))
+        opp_location = game.get_player_location(game.get_opponent(player))
+        opp_unvisited_spaces = check_partition(opp_location, set(blank_spaces))
+        if opp_unvisited_spaces != own_unvisited_spaces:
+            opp_unv_spaces_count = len(opp_unvisited_spaces)
+            own_unv_spaces_count = len(own_unvisited_spaces)
+            return len(opp_unvisited_spaces) - len(own_unvisited_spaces)
 
-    average_moves = _AVG_MOVES.get(game.width*game.height, total_moves)
-    return float(own_moves - (1+total_moves/average_moves)*opp_moves)
+            if len(opp_unvisited_spaces & own_unvisited_spaces) == 0:
+                print(game.to_string())
+                if len(opp_unvisited_spaces) > len(own_unvisited_spaces):
+                    return _MAX_SCORE
+                else:
+                    return _MIN_SCORE
+            else:
+                return 10*(len(opp_unvisited_spaces) - len(own_unvisited_spaces))
+    return custom_score_3(game, player)
+
+
+def check_partition(location, blank_spaces):
+    """
+    Check if all available blank spaces 
+    """
+    for move in get_moves(location, blank_spaces):
+        blank_spaces.remove(move)
+        check_partition(move, blank_spaces)
+    return blank_spaces
+
+
+
+def get_moves(move, blank_spaces):
+    r, c = move
+    directions = [(-2, -1), (-2, 1), (-1, -2), (-1, 2),
+                  (1, -2), (1, 2), (2, -1), (2, 1)]
+    moves = [(r + dr, c + dc) for dr, dc in directions]
+    return filter(lambda m: m in blank_spaces, moves)
 
 
 def custom_score_3(game, player):
