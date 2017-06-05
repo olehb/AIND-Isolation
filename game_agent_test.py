@@ -1,18 +1,18 @@
 import unittest
 from isolation import Board
-from game_agent import AlphaBetaPlayer
+from game_agent import AlphaBetaPlayer, custom_score, custom_score_2, custom_score_3
 from game_agent import get_mutation_hashes, check_partition
 
 
 class TestGameBoard(unittest.TestCase):
     def setUp(self):
         state = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 68]
-        player_1 = AlphaBetaPlayer()
-        player_2 = AlphaBetaPlayer()
-        self.game = Board(player_1, player_2, raw_state=state)
+        player_1 = AlphaBetaPlayer(score_fn=custom_score_2)
+        player_2 = AlphaBetaPlayer(score_fn=custom_score)
+        self.game = Board(player_1, player_2, raw_state=state, p1_name="player 1", p2_name="player 2")
 
-    def _test_alphabeta(self):
-        self.game.play()
+    def test_alphabeta(self):
+        print(self.game.play())
     
     def test_rotate(self):
         self.assertEqual(self.game.rotate().rotate().rotate().rotate().hash(), self.game.hash())

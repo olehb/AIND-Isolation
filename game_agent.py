@@ -81,16 +81,17 @@ def custom_score_2(game, player):
         return _MIN_SCORE
 
     blank_spaces = set(game.get_blank_spaces())
-    if len(blank_spaces) <= game.width*game.height/2.5:
+    if len(blank_spaces) <= game.width*game.height/2:
         own_location = game.get_player_location(player)
         own_unreachable_spaces, own_move_count = check_partition(own_location, blank_spaces, set(), set(), 0)
         opp_location = game.get_player_location(game.get_opponent(player))
         opp_unreachable_spaces, opp_move_count = check_partition(opp_location, blank_spaces, set(), set(), 0)
+        # print(own_move_count, opp_move_count)
 
         if not ((blank_spaces - own_unreachable_spaces) & (blank_spaces - opp_unreachable_spaces)):
             # This means players are located in separate partitions, and one with more remaining moves wins
             return _MAX_SCORE if own_move_count > opp_move_count else _MIN_SCORE
-        return float(own_move_count - opp_move_count)
+        return float(100*(own_move_count - opp_move_count))
     return custom_score(game, player)
 
 
@@ -398,7 +399,8 @@ class AlphaBetaPlayer(IsolationPlayer):
         try:
             # The try/except block will automatically catch the exception
             # raised when the timer is about to expire.
-            for depth in range(game.width*game.height):
+            blank_spaces = game.get_blank_spaces()
+            for depth in range(len(blank_spaces)):
                 move = self.alphabeta(game, depth+1)
                 if move != self.NO_MOVE:
                     best_move = move
