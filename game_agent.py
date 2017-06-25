@@ -81,21 +81,14 @@ def custom_score_2(game, player):
         return _MIN_SCORE
 
     blank_spaces = set(game.get_blank_spaces())
-    if len(blank_spaces) <= game.width*game.height/3:
-        own_location = game.get_player_location(player)
-        own_unreachable_spaces, own_reachable = check_partition_2(own_location, blank_spaces)
+    own_location = game.get_player_location(player)
+    own_reachable = check_partition_2(own_location, blank_spaces)
 
-        opp_location = game.get_player_location(game.get_opponent(player))
-        opp_unreachable_spaces, opp_reachable = check_partition_2(opp_location, blank_spaces)
+    opp_location = game.get_player_location(game.get_opponent(player))
+    opp_reachable = check_partition_2(opp_location, blank_spaces)
 
-        score = own_reachable - 1.5*opp_reachable
-        print(score)
-
-        # if not ((blank_spaces - own_unreachable_spaces) & (blank_spaces - opp_unreachable_spaces)):
-        #     # This means players are located in separate partitions, and one with more remaining moves wins
-        #     return _MAX_SCORE if len(opp_unreachable_spaces) - len(own_unreachable_spaces) > 0 else _MIN_SCORE
-        return float(100*score)
-    return custom_score(game, player)
+    score = float(own_reachable - 1.5*opp_reachable)
+    return score
 
 
 def check_partition(location, blank_spaces):
@@ -108,16 +101,16 @@ def check_partition(location, blank_spaces):
     return min_blank_spaces
 
 
-def check_partition_2(location, blank_spaces):
-    min_blank_spaces = blank_spaces
+_MAX_LEVEL = 2
+def check_partition_2(location, blank_spaces, level=0):
     moves = get_moves(location, blank_spaces)
     total_reachable = len(moves)
+    if level >= _MAX_LEVEL:
+        return total_reachable
     for move in moves:
-        blank_spaces_from_here, reachable_from_here = check_partition_2(move, blank_spaces - {move})
+        reachable_from_here = check_partition_2(move, blank_spaces - {move}, level+1)
         total_reachable += reachable_from_here
-        if len(blank_spaces_from_here) < len(min_blank_spaces):
-            min_blank_spaces = blank_spaces_from_here
-    return min_blank_spaces, total_reachable
+    return total_reachable
 
 
 directions = [(-2, -1), (-2, 1), (-1, -2), (-1, 2),
