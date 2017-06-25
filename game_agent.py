@@ -58,7 +58,7 @@ def custom_score(game, player):
 
 def custom_score_2(game, player):
     """
-    Calculates score based on partitions
+    Calcualtes score based on sum of moves available several levels deep
 
     Parameters
     ----------
