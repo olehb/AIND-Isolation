@@ -87,7 +87,7 @@ def custom_score_2(game, player):
     opp_location = game.get_player_location(game.get_opponent(player))
     opp_deep_moves = deep_moves_available(opp_location, blank_spaces)
 
-    score = float(own_deep_moves - (1.3+game.move_count/10)*opp_deep_moves)
+    score = float(own_deep_moves - (1.5+game.move_count/100)*opp_deep_moves)
     return score
 
 
