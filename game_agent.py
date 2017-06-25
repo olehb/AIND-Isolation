@@ -3,7 +3,7 @@ test your agent's strength against a set of known agents using tournament.py
 and include the results in your report.
 """
 
-from random import random
+from random import random, triangular
 
 _MAX_SCORE = float("inf")
 _MIN_SCORE = float("-inf")
@@ -22,10 +22,46 @@ class SearchTimeout(Exception):
 
 
 def custom_score(game, player):
-    """Calculate the heuristic value of a game state from the point of view
-    of the given player.
+    """
+    Calcualtes score based on sum of moves available several levels deep
 
     This should be the best heuristic function for your project submission.
+
+    Parameters
+    ----------
+    game : `isolation.Board`
+        An instance of `isolation.Board` encoding the current state of the
+        game (e.g., player locations and blocked cells).
+
+    player : object
+        A player instance in the current game (i.e., an object corresponding to
+        one of the player objects `game.__player_1__` or `game.__player_2__`.)
+
+    Returns
+    -------
+    float
+        The heuristic value of the current game state to the specified player.
+    """
+    if game.is_winner(player):
+        return _MAX_SCORE
+    if game.is_loser(player):
+        return _MIN_SCORE
+
+    blank_spaces = set(game.get_blank_spaces())
+    own_location = game.get_player_location(player)
+    own_deep_moves = deep_moves_available(own_location, blank_spaces)
+
+    opp_location = game.get_player_location(game.get_opponent(player))
+    opp_deep_moves = deep_moves_available(opp_location, blank_spaces)
+
+    # Getting slightly more aggressive later in the game
+    score = float(own_deep_moves - (1.5+game.move_count/100)*opp_deep_moves)
+    return score
+
+
+def custom_score_2(game, player):
+    """Calculate the heuristic value of a game state from the point of view
+    of the given player.
 
     Note: this function should be called from within a Player instance as
     `self.score()` -- you should not need to call this function directly.
@@ -56,74 +92,76 @@ def custom_score(game, player):
     return float(len(own_moves) - (1+random())*len(opp_moves))
 
 
-def custom_score_2(game, player):
+def take_longest_path(location, blank_spaces):
     """
-    Calculates score based on partitions
+    This function traces longest path available from the given
+    location and within given blank_spaces
 
     Parameters
     ----------
-    game : `isolation.Board`
-        An instance of `isolation.Board` encoding the current state of the
-        game (e.g., player locations and blocked cells).
-
-    player : object
-        A player instance in the current game (i.e., an object corresponding to
-        one of the player objects `game.__player_1__` or `game.__player_2__`.)
-
+    location : set(int, int)
+    blank_spaces : set(set(int, int))
+        Blank spaces available on the board
     Returns
     -------
-    float
-        The heuristic value of the current game state to the specified player.
+    set(set(int, int))
+        Blank spaces left after the longest path taken
     """
-    if game.is_winner(player):
-        return _MAX_SCORE
-    if game.is_loser(player):
-        return _MIN_SCORE
-
-    blank_spaces = set(game.get_blank_spaces())
-    if len(blank_spaces) <= game.width*game.height/2.5:
-        own_location = game.get_player_location(player)
-        own_unreachable_spaces, own_move_count = check_partition(own_location, blank_spaces, set(), set(), 0)
-        opp_location = game.get_player_location(game.get_opponent(player))
-        opp_unreachable_spaces, opp_move_count = check_partition(opp_location, blank_spaces, set(), set(), 0)
-
-        if not ((blank_spaces - own_unreachable_spaces) & (blank_spaces - opp_unreachable_spaces)):
-            # This means players are located in separate partitions, and one with more remaining moves wins
-            return _MAX_SCORE if own_move_count > opp_move_count else _MIN_SCORE
-        return float(own_move_count - opp_move_count)
-    return custom_score(game, player)
+    min_blank_spaces = blank_spaces
+    moves = get_moves(location, blank_spaces)
+    for move in moves:
+        blank_spaces_from_here = check_partition(move, blank_spaces - {move})
+        if len(blank_spaces_from_here) < len(min_blank_spaces):
+            min_blank_spaces = blank_spaces_from_here
+    return min_blank_spaces
 
 
-def check_partition(location, blank_spaces, visited_nodes, global_visited_nodes, i):
+_MAX_LEVEL = 2
+def deep_moves_available(location, blank_spaces, level=0):
     """
-    Check if all available blank spaces
+    This function calculates total available moves up to _MAX_LEVEL deep
+    Some cells of the board may be count more than once here, but this is fine
+    because the idea is to get a measure of "freedom" for a given player's position
+
+    Parameters
+    ----------
+    location : set(int, int)
+        Player's location
+    blank_spaces : set(set(int, int))
+        Blank spaces available on the board
+    level : int
+        Current depth level
+    Returns
+    -------
+    int
+        Total number of moves available up _MAX_LEVEL deep
     """
-    longest_path = i
-    global_visited_nodes.add(location)
-    for move in get_moves(location, blank_spaces, visited_nodes):
-        _, current_longest_path = check_partition(move, blank_spaces, visited_nodes | {move}, global_visited_nodes, i+1)
-        if current_longest_path > longest_path:
-            longest_path = current_longest_path
-    return blank_spaces - global_visited_nodes, longest_path
+    moves = get_moves(location, blank_spaces)
+    total_reachable = len(moves)
+    if level >= _MAX_LEVEL:
+        return total_reachable
+    for move in moves:
+        reachable_from_here = deep_moves_available(move, blank_spaces - {move}, level+1)
+        total_reachable += reachable_from_here
+    return total_reachable
 
 
-def get_moves(move, blank_spaces, visited_nodes):
+directions = [(-2, -1), (-2, 1), (-1, -2), (-1, 2),
+              (1, -2), (1, 2), (2, -1), (2, 1)]
+def get_moves(move, blank_spaces):
     """
     Get available moves within given blank spaces
     """
     r, c = move
-    directions = [(-2, -1), (-2, 1), (-1, -2), (-1, 2),
-                  (1, -2), (1, 2), (2, -1), (2, 1)]
     moves = [(r + dr, c + dc) for dr, dc in directions]
-    return filter(lambda m: m in blank_spaces and m not in visited_nodes, moves)
+    return [m for m in moves if m in blank_spaces]
 
 
 def custom_score_3(game, player):
     """Calculate the heuristic value of a game state from the point of view
     of the given player.
 
-    Note: this function should be called from within a Player instance as
-    `self.score()` -- you should not need to call this function directly.
+    This function penalizes border moves for player
 
     Parameters
     ----------
@@ -154,6 +192,9 @@ def custom_score_3(game, player):
                  - len(opp_moves)+border_move_discount*num_border_moves(opp_moves, game))
 
 def num_border_moves(moves, game):
+    """
+    Utility function to calculate number of border moves
+    """
     return sum(1 for move in moves
                if move[0] in [0, game.height-1]
                or move[1] in [0, game.width-1])
@@ -172,7 +213,9 @@ def hash_state(state):
 def get_mutation_hashes(game):
     yield game.hash()
     width = game.width
+    # Flip game board diagonally
     diag = lambda i, w: (i%w)*w + i//w if i is not None else None
+    # Rotate game board
     rot = lambda i, w: (w - 1 -(i%w))*w + i//w if i is not None else None
     mutated_state = game._board_state
     # Otherwise it's failing with "Exception: unsupported operand type(s) for %: 'NoneType' and 'int'"
@@ -398,7 +441,8 @@ class AlphaBetaPlayer(IsolationPlayer):
         try:
             # The try/except block will automatically catch the exception
             # raised when the timer is about to expire.
-            for depth in range(game.width*game.height):
+            blank_spaces = game.get_blank_spaces()
+            for depth in range(len(blank_spaces)):
                 move = self.alphabeta(game, depth+1)
                 if move != self.NO_MOVE:
                     best_move = move
