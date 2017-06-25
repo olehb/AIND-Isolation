@@ -82,16 +82,30 @@ def custom_score_2(game, player):
 
     blank_spaces = set(game.get_blank_spaces())
     own_location = game.get_player_location(player)
-    own_reachable = check_partition_2(own_location, blank_spaces)
+    own_deep_moves = deep_moves_available(own_location, blank_spaces)
 
     opp_location = game.get_player_location(game.get_opponent(player))
-    opp_reachable = check_partition_2(opp_location, blank_spaces)
+    opp_deep_moves = deep_moves_available(opp_location, blank_spaces)
 
-    score = float(own_reachable - 1.5*opp_reachable)
+    score = float(own_deep_moves - (1.3+game.move_count/10)*opp_deep_moves)
     return score
 
 
-def check_partition(location, blank_spaces):
+def take_longest_path(location, blank_spaces):
+    """
+    This function traces longest path available from the given
+    location and within given blank_spaces
+
+    Parameters
+    ----------
+    location : set(int, int)
+    blank_spaces : set(set(int, int))
+        Blank spaces available on the board
+    Returns
+    -------
+    set(set(int, int))
+        Blank spaces left after the longest path taken
+    """
     min_blank_spaces = blank_spaces
     moves = get_moves(location, blank_spaces)
     for move in moves:
@@ -102,13 +116,31 @@ def check_partition(location, blank_spaces):
 
 
 _MAX_LEVEL = 2
-def check_partition_2(location, blank_spaces, level=0):
+def deep_moves_available(location, blank_spaces, level=0):
+    """
+    This function calculates total available moves up to _MAX_LEVEL deep
+    Some cells of the board may be count more than once here, but this is fine
+    because the idea is to get a measure of "freedom" for a given player's position
+
+    Parameters
+    ----------
+    location : set(int, int)
+        Player's location
+    blank_spaces : set(set(int, int))
+        Blank spaces available on the board
+    level : int
+        Current depth level
+    Returns
+    -------
+    int
+        Total number of moves available up _MAX_LEVEL deep
+    """
     moves = get_moves(location, blank_spaces)
     total_reachable = len(moves)
     if level >= _MAX_LEVEL:
         return total_reachable
     for move in moves:
-        reachable_from_here = check_partition_2(move, blank_spaces - {move}, level+1)
+        reachable_from_here = deep_moves_available(move, blank_spaces - {move}, level+1)
         total_reachable += reachable_from_here
     return total_reachable
 
@@ -128,8 +160,8 @@ def custom_score_3(game, player):
     """Calculate the heuristic value of a game state from the point of view
     of the given player.
 
-    Note: this function should be called from within a Player instance as
-    `self.score()` -- you should not need to call this function directly.
+    This function takes into account two things
+
 
     Parameters
     ----------
