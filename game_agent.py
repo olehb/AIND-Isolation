@@ -49,13 +49,24 @@ def custom_score(game, player):
 
     blank_spaces = set(game.get_blank_spaces())
     own_location = game.get_player_location(player)
-    own_deep_moves = deep_moves_available(own_location, blank_spaces)
-
     opp_location = game.get_player_location(game.get_opponent(player))
-    opp_deep_moves = deep_moves_available(opp_location, blank_spaces)
-
     # Getting slightly more aggressive later in the game
-    score = float(own_deep_moves - (1.5+game.move_count/100)*opp_deep_moves)
+    # 35 is average number of moves per game, so this penalty will gradually
+    # increase from ~1 to ~2
+    aggressiveness = 1+game.move_count/35
+
+    own_deep_moves = deep_moves_available(own_location, blank_spaces)
+    opp_deep_moves = deep_moves_available(opp_location, blank_spaces)
+    score = float(own_deep_moves - aggressiveness*opp_deep_moves)
+
+    # THIS DOESN'T WORK.
+    # Even though take_longest_path function works as expected, it doesn't
+    # produce a good heuristics for isolation game. Algo based on take_longest_path
+    # proved to be less efficient than some other simplest heuristics.
+    #
+    # own_blank_spaces = take_longest_path(own_location, blank_spaces)
+    # opp_blank_spaces = take_longest_path(opp_location, blank_spaces)
+    # score = float(len(opp_blank_spaces) - aggressiveness*len(own_blank_spaces))
     return score
 
 
@@ -110,7 +121,7 @@ def take_longest_path(location, blank_spaces):
     min_blank_spaces = blank_spaces
     moves = get_moves(location, blank_spaces)
     for move in moves:
-        blank_spaces_from_here = check_partition(move, blank_spaces - {move})
+        blank_spaces_from_here = take_longest_path(move, blank_spaces - {move})
         if len(blank_spaces_from_here) < len(min_blank_spaces):
             min_blank_spaces = blank_spaces_from_here
     return min_blank_spaces
@@ -137,13 +148,20 @@ def deep_moves_available(location, blank_spaces, level=0):
         Total number of moves available up _MAX_LEVEL deep
     """
     moves = get_moves(location, blank_spaces)
-    total_reachable = len(moves)
+    total_reachable = sum([score_move(move) for move in moves])
     if level >= _MAX_LEVEL:
         return total_reachable
     for move in moves:
         reachable_from_here = deep_moves_available(move, blank_spaces - {move}, level+1)
         total_reachable += reachable_from_here
     return total_reachable
+
+
+def score_move(move):
+    return 0.5 if is_border_move(move) else 1
+
+def is_border_move(move):
+    return move[0] in [0, 7] or move[1] in [0, 7]
 
 
 directions = [(-2, -1), (-2, 1), (-1, -2), (-1, 2),
