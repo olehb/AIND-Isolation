@@ -50,10 +50,9 @@ def custom_score(game, player):
     blank_spaces = set(game.get_blank_spaces())
     own_location = game.get_player_location(player)
     opp_location = game.get_player_location(game.get_opponent(player))
-    # Getting slightly more aggressive later in the game
-    # 35 is average number of moves per game, so this penalty will gradually
-    # increase from ~1 to ~2
-    aggressiveness = 1+game.move_count/35
+    # Getting slightly more aggressive towards the end of the game
+    # 35 is average number of moves per 7x7 game
+    aggressiveness = 1.5+game.move_count/35
 
     own_deep_moves = deep_moves_available(own_location, blank_spaces)
     opp_deep_moves = deep_moves_available(opp_location, blank_spaces)
