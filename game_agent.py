@@ -22,43 +22,10 @@ class SearchTimeout(Exception):
 
 
 def custom_score(game, player):
-    """Calculate the heuristic value of a game state from the point of view
-    of the given player.
-
-    This should be the best heuristic function for your project submission.
-
-    Note: this function should be called from within a Player instance as
-    `self.score()` -- you should not need to call this function directly.
-
-    Parameters
-    ----------
-    game : `isolation.Board`
-        An instance of `isolation.Board` encoding the current state of the
-        game (e.g., player locations and blocked cells).
-
-    player : object
-        A player instance in the current game (i.e., an object corresponding to
-        one of the player objects `game.__player_1__` or `game.__player_2__`.)
-
-    Returns
-    -------
-    float
-        The heuristic value of the current game state to the specified player.
-    """
-    if game.is_winner(player):
-        return _MAX_SCORE
-    if game.is_loser(player):
-        return _MIN_SCORE
-
-    own_moves = game.get_legal_moves(player)
-    opp_moves = game.get_legal_moves(game.get_opponent(player))
-
-    return float(len(own_moves) - (1+random())*len(opp_moves))
-
-
-def custom_score_2(game, player):
     """
     Calcualtes score based on sum of moves available several levels deep
+
+    This should be the best heuristic function for your project submission.
 
     Parameters
     ----------
@@ -90,6 +57,39 @@ def custom_score_2(game, player):
     # Getting slightly more aggressive later in the game
     score = float(own_deep_moves - (1.5+game.move_count/100)*opp_deep_moves)
     return score
+
+
+def custom_score_2(game, player):
+    """Calculate the heuristic value of a game state from the point of view
+    of the given player.
+
+    Note: this function should be called from within a Player instance as
+    `self.score()` -- you should not need to call this function directly.
+
+    Parameters
+    ----------
+    game : `isolation.Board`
+        An instance of `isolation.Board` encoding the current state of the
+        game (e.g., player locations and blocked cells).
+
+    player : object
+        A player instance in the current game (i.e., an object corresponding to
+        one of the player objects `game.__player_1__` or `game.__player_2__`.)
+
+    Returns
+    -------
+    float
+        The heuristic value of the current game state to the specified player.
+    """
+    if game.is_winner(player):
+        return _MAX_SCORE
+    if game.is_loser(player):
+        return _MIN_SCORE
+
+    own_moves = game.get_legal_moves(player)
+    opp_moves = game.get_legal_moves(game.get_opponent(player))
+
+    return float(len(own_moves) - (1+random())*len(opp_moves))
 
 
 def take_longest_path(location, blank_spaces):
