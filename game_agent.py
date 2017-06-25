@@ -160,8 +160,7 @@ def custom_score_3(game, player):
     """Calculate the heuristic value of a game state from the point of view
     of the given player.
 
-    This function takes into account two things
-
+    This function penalizes border moves for player
 
     Parameters
     ----------
@@ -192,6 +191,9 @@ def custom_score_3(game, player):
                  - len(opp_moves)+border_move_discount*num_border_moves(opp_moves, game))
 
 def num_border_moves(moves, game):
+    """
+    Utility function to calculate number of border moves
+    """
     return sum(1 for move in moves
                if move[0] in [0, game.height-1]
                or move[1] in [0, game.width-1])
@@ -210,7 +212,9 @@ def hash_state(state):
 def get_mutation_hashes(game):
     yield game.hash()
     width = game.width
+    # Flip game board diagonally
     diag = lambda i, w: (i%w)*w + i//w if i is not None else None
+    # Rotate game board
     rot = lambda i, w: (w - 1 -(i%w))*w + i//w if i is not None else None
     mutated_state = game._board_state
     # Otherwise it's failing with "Exception: unsupported operand type(s) for %: 'NoneType' and 'int'"
