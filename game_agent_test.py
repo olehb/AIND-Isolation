@@ -27,15 +27,15 @@ class TestGameBoard(unittest.TestCase):
 
     def test_check_partition(self):
         """
-        	0	1	2	3	4	5	6	7
-        0	x	z						o
-        1			o					
-        2							o	
-        3				o				
-        4						o		
-        5			o					
-        6	o				o			z
-        7							o	
+          0 1 2 3 4 5 6 7
+        0 x
+        1     o
+        2   o
+        3   o   o
+        4
+        5     o         o
+        6         o
+        7             o
 
         Legend:
         x -- start location
@@ -43,40 +43,48 @@ class TestGameBoard(unittest.TestCase):
         z -- blank spaces which are unreachable from x
         """
 
-        blank_spaces = {(1, 2), (3, 3), (5, 2), (6, 4), (7, 6)}
+        blank_spaces = {(1, 2), (3, 3), (5, 2), (6, 4), (7, 6), (2, 1), (3, 1), (5, 7)}
+        #blank_spaces = {(1, 2), (3, 3), (5, 2), (3, 1), (0, 1)}
         location = (0, 0)
-        unreachable_spaces, max_move_count = check_partition(location, blank_spaces, set(), set(), 0)
+        unreachable_spaces = check_partition(location, blank_spaces)
         self.assertEqual(set(), unreachable_spaces)
-        self.assertEqual(5, max_move_count)
+        max_move_count = len(blank_spaces) - len(unreachable_spaces)
+        self.assertEqual(8, max_move_count)
 
         blank_spaces.add((0, 1))
-        unreachable_spaces, max_move_count = check_partition(location, blank_spaces, set(), set(), 0)
+        unreachable_spaces = check_partition(location, blank_spaces)
         self.assertEqual({(0, 1),}, unreachable_spaces)
-        self.assertEqual(5, max_move_count)
+        max_move_count = len(blank_spaces) - len(unreachable_spaces)
+        self.assertEqual(8, max_move_count)
 
         blank_spaces.add((4, 5))
-        unreachable_spaces, max_move_count = check_partition(location, blank_spaces, set(), set(), 0)
+        unreachable_spaces = check_partition(location, blank_spaces)
         self.assertEqual({(0, 1),}, unreachable_spaces)
-        self.assertEqual(5, max_move_count)
+        max_move_count = len(blank_spaces) - len(unreachable_spaces)
+        self.assertEqual(9, max_move_count)
 
         blank_spaces.add((6, 0))
-        unreachable_spaces, max_move_count = check_partition(location, blank_spaces, set(), set(), 0)
+        unreachable_spaces = check_partition(location, blank_spaces)
         self.assertEqual({(0, 1),}, unreachable_spaces)
+        max_move_count = len(blank_spaces) - len(unreachable_spaces)
         self.assertEqual(6, max_move_count)
 
         blank_spaces.add((6, 7))
-        unreachable_spaces, max_move_count = check_partition(location, blank_spaces, set(), set(), 0)
+        unreachable_spaces = check_partition(location, blank_spaces)
         self.assertEqual({(0, 1), (6, 7)}, unreachable_spaces)
+        max_move_count = len(blank_spaces) - len(unreachable_spaces)
         self.assertEqual(6, max_move_count)
 
         blank_spaces.add((2, 6))
-        unreachable_spaces, max_move_count = check_partition(location, blank_spaces, set(), set(), 0)
+        unreachable_spaces = check_partition(location, blank_spaces)
         self.assertEqual({(0, 1), (6, 7)}, unreachable_spaces)
+        max_move_count = len(blank_spaces) - len(unreachable_spaces)
         self.assertEqual(6, max_move_count)
 
         blank_spaces.add((0, 7))
-        unreachable_spaces, max_move_count = check_partition(location, blank_spaces, set(), set(), 0)
+        unreachable_spaces = check_partition(location, blank_spaces)
         self.assertEqual({(0, 1), (6, 7)}, unreachable_spaces)
+        max_move_count = len(blank_spaces) - len(unreachable_spaces)
         self.assertEqual(7, max_move_count)
 
 if __name__ == '__main__':
