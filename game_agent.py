@@ -2,7 +2,18 @@
 test your agent's strength against a set of known agents using tournament.py
 and include the results in your report.
 """
-import random
+
+from random import random, triangular
+
+_MAX_SCORE = float("inf")
+_MIN_SCORE = float("-inf")
+_DELIM = '>'
+
+"""
+Experimentally determined number of average moves per game,
+depending on board size, e.g. it takes ~35.5 moves to play on 7x7 board
+"""
+_AVG_MOVES = {49: 35.5}
 
 
 class SearchTimeout(Exception):
@@ -11,13 +22,10 @@ class SearchTimeout(Exception):
 
 
 def custom_score(game, player):
-    """Calculate the heuristic value of a game state from the point of view
-    of the given player.
+    """
+    Calcualtes score based on sum of moves available several levels deep
 
     This should be the best heuristic function for your project submission.
-
-    Note: this function should be called from within a Player instance as
-    `self.score()` -- you should not need to call this function directly.
 
     Parameters
     ----------
@@ -34,8 +42,33 @@ def custom_score(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    # TODO: finish this function!
-    raise NotImplementedError
+    if game.is_winner(player):
+        return _MAX_SCORE
+    if game.is_loser(player):
+        return _MIN_SCORE
+
+    blank_spaces = set(game.get_blank_spaces())
+    own_location = game.get_player_location(player)
+    opp_location = game.get_player_location(game.get_opponent(player))
+    # Getting slightly more aggressive towards the end of the game
+    # 35 is average number of moves per 7x7 game
+    aggressiveness = 1.5+game.move_count/35
+
+    max_level = 4 if len(blank_spaces) < game.width*game.height/2 else 2
+
+    own_deep_moves = deep_moves_available(own_location, blank_spaces, max_level=max_level)
+    opp_deep_moves = deep_moves_available(opp_location, blank_spaces, max_level=max_level)
+    score = float(own_deep_moves - aggressiveness*opp_deep_moves)/(len(blank_spaces)*max_level)
+
+    # THIS DOESN'T WORK.
+    # Even though take_longest_path function works as expected, it doesn't
+    # produce a good heuristics for isolation game. Algo based on take_longest_path
+    # proved to be less efficient than some other simplest heuristics.
+    #
+    # own_blank_spaces = take_longest_path(own_location, blank_spaces)
+    # opp_blank_spaces = take_longest_path(opp_location, blank_spaces)
+    # score = float(len(opp_blank_spaces) - aggressiveness*len(own_blank_spaces))
+    return score
 
 
 def custom_score_2(game, player):
@@ -60,16 +93,94 @@ def custom_score_2(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    # TODO: finish this function!
-    raise NotImplementedError
+    if game.is_winner(player):
+        return _MAX_SCORE
+    if game.is_loser(player):
+        return _MIN_SCORE
+
+    own_moves = game.get_legal_moves(player)
+    opp_moves = game.get_legal_moves(game.get_opponent(player))
+
+    return float(len(own_moves) - (1+random())*len(opp_moves))
+
+
+def take_longest_path(location, blank_spaces):
+    """
+    This function traces longest path available from the given
+    location and within given blank_spaces
+
+    Parameters
+    ----------
+    location : set(int, int)
+    blank_spaces : set(set(int, int))
+        Blank spaces available on the board
+    Returns
+    -------
+    set(set(int, int))
+        Blank spaces left after the longest path taken
+    """
+    min_blank_spaces = blank_spaces
+    moves = get_moves(location, blank_spaces)
+    for move in moves:
+        blank_spaces_from_here = take_longest_path(move, blank_spaces - {move})
+        if len(blank_spaces_from_here) < len(min_blank_spaces):
+            min_blank_spaces = blank_spaces_from_here
+    return min_blank_spaces
+
+
+_MAX_LEVEL = 2
+def deep_moves_available(location, blank_spaces, level=0, max_level=2):
+    """
+    This function calculates total available moves up to _MAX_LEVEL deep
+    Some cells of the board may be count more than once here, but this is fine
+    because the idea is to get a measure of "freedom" for a given player's position
+
+    Parameters
+    ----------
+    location : set(int, int)
+        Player's location
+    blank_spaces : set(set(int, int))
+        Blank spaces available on the board
+    level : int
+        Current depth level
+    Returns
+    -------
+    int
+        Total number of moves available up _MAX_LEVEL deep
+    """
+    moves = get_moves(location, blank_spaces)
+    total_reachable = sum([score_move(move) for move in moves])
+    if level >= max_level:
+        return total_reachable
+    for move in moves:
+        reachable_from_here = deep_moves_available(move, blank_spaces - {move}, level+1, max_level)
+        total_reachable += reachable_from_here
+    return total_reachable
+
+
+def score_move(move):
+    return 0.5 if is_border_move(move) else 1
+
+def is_border_move(move):
+    return move[0] in [0, 7] or move[1] in [0, 7]
+
+
+directions = [(-2, -1), (-2, 1), (-1, -2), (-1, 2),
+              (1, -2), (1, 2), (2, -1), (2, 1)]
+def get_moves(move, blank_spaces):
+    """
+    Get available moves within given blank spaces
+    """
+    r, c = move
+    moves = [(r + dr, c + dc) for dr, dc in directions]
+    return [m for m in moves if m in blank_spaces]
 
 
 def custom_score_3(game, player):
     """Calculate the heuristic value of a game state from the point of view
     of the given player.
 
-    Note: this function should be called from within a Player instance as
-    `self.score()` -- you should not need to call this function directly.
+    This function penalizes border moves for player
 
     Parameters
     ----------
@@ -86,8 +197,53 @@ def custom_score_3(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    # TODO: finish this function!
-    raise NotImplementedError
+    if game.is_winner(player):
+        return _MAX_SCORE
+    if game.is_loser(player):
+        return _MIN_SCORE
+
+    average_moves = _AVG_MOVES.get(game.width*game.height, game.move_count)
+    border_move_discount = 0.5 + game.move_count/average_moves
+    own_moves = game.get_legal_moves(player)
+    opp_moves = game.get_legal_moves(game.get_opponent(player))
+
+    return float(len(own_moves)-border_move_discount*num_border_moves(own_moves, game)
+                 - len(opp_moves)+border_move_discount*num_border_moves(opp_moves, game))
+
+def num_border_moves(moves, game):
+    """
+    Utility function to calculate number of border moves
+    """
+    return sum(1 for move in moves
+               if move[0] in [0, game.height-1]
+               or move[1] in [0, game.width-1])
+
+def mutate_state(mutator, state, width):
+    # Mutating game board
+    mutated_state = [state[mutator(i, width)] for i in range(len(state)-3)]
+    # Transforming player states accordingly
+    for i in range(-3, 0):
+        mutated_state.append(mutator(state[i], width))
+    return mutated_state
+
+def hash_state(state):
+    return str(state).__hash__()
+
+def get_mutation_hashes(game):
+    yield game.hash()
+    width = game.width
+    # Flip game board diagonally
+    diag = lambda i, w: (i%w)*w + i//w if i is not None else None
+    # Rotate game board
+    rot = lambda i, w: (w - 1 -(i%w))*w + i//w if i is not None else None
+    mutated_state = game._board_state
+    # Otherwise it's failing with "Exception: unsupported operand type(s) for %: 'NoneType' and 'int'"
+    if mutated_state is None or width is None:
+        return
+    for _ in range(3):
+        yield hash_state(mutate_state(diag, mutated_state, width))
+        mutated_state = mutate_state(rot, mutated_state, width)
+        yield hash_state(mutated_state)
 
 
 class IsolationPlayer:
@@ -112,11 +268,17 @@ class IsolationPlayer:
         positive value large enough to allow the function to return before the
         timer expires.
     """
+    NO_MOVE = (-1, -1)
+
     def __init__(self, search_depth=3, score_fn=custom_score, timeout=10.):
         self.search_depth = search_depth
         self.score = score_fn
         self.time_left = None
         self.TIMER_THRESHOLD = timeout
+
+    def check_time(self):
+        if self.time_left() < self.TIMER_THRESHOLD:
+            raise SearchTimeout()
 
 
 class MinimaxPlayer(IsolationPlayer):
@@ -157,7 +319,7 @@ class MinimaxPlayer(IsolationPlayer):
 
         # Initialize the best move so that this function returns something
         # in case the search fails due to timeout
-        best_move = (-1, -1)
+        best_move = self.NO_MOVE
 
         try:
             # The try/except block will automatically catch the exception
@@ -209,11 +371,51 @@ class MinimaxPlayer(IsolationPlayer):
                 each helper function or else your agent will timeout during
                 testing.
         """
-        if self.time_left() < self.TIMER_THRESHOLD:
-            raise SearchTimeout()
+        self.check_time()
 
-        # TODO: finish this function!
-        raise NotImplementedError
+        _, best_move = self._max_value(game, game.active_player, depth)
+        # Uncomment lines below to never forfeit the game
+        if best_move == self.NO_MOVE and len(game.get_legal_moves()) > 0:
+            return game.get_legal_moves()[0]
+        return best_move
+
+    def _max_value(self, game, player, plies_left):
+        self.check_time()
+        best_move = self.NO_MOVE
+        best_score = _MIN_SCORE
+        try:
+            for move in game.get_legal_moves():
+                current_game = game.forecast_move(move)
+                if plies_left <= 1:
+                    current_score = self.score(current_game, player)
+                else:
+                    current_score, _ = self._min_value(current_game,
+                                                       player, plies_left-1)
+                if current_score > best_score:
+                    best_score = current_score
+                    best_move = move
+        except SearchTimeout:
+            pass
+        return best_score, best_move
+
+    def _min_value(self, game, player, plies_left):
+        self.check_time()
+        best_move = self.NO_MOVE
+        best_score = _MAX_SCORE
+        try:
+            for move in game.get_legal_moves():
+                current_game = game.forecast_move(move)
+                if plies_left <= 1:
+                    current_score = self.score(current_game, player)
+                else:
+                    current_score, _ = self._max_value(current_game,
+                                                       player, plies_left-1)
+                if current_score < best_score:
+                    best_score = current_score
+                    best_move = move
+        except SearchTimeout:
+            pass
+        return best_score, best_move
 
 
 class AlphaBetaPlayer(IsolationPlayer):
@@ -253,11 +455,23 @@ class AlphaBetaPlayer(IsolationPlayer):
             (-1, -1) if there are no available legal moves.
         """
         self.time_left = time_left
+        best_move = self.NO_MOVE
 
-        # TODO: finish this function!
-        raise NotImplementedError
+        try:
+            # The try/except block will automatically catch the exception
+            # raised when the timer is about to expire.
+            blank_spaces = game.get_blank_spaces()
+            for depth in range(len(blank_spaces)):
+                move = self.alphabeta(game, depth+1)
+                if move != self.NO_MOVE:
+                    best_move = move
+        except SearchTimeout:
+            pass  # Handle any actions required after timeout as needed
 
-    def alphabeta(self, game, depth, alpha=float("-inf"), beta=float("inf")):
+        # Return the best move from the last completed search iteration
+        return best_move
+
+    def alphabeta(self, game, depth, alpha=_MIN_SCORE, beta=_MAX_SCORE):
         """Implement depth-limited minimax search with alpha-beta pruning as
         described in the lectures.
 
@@ -302,8 +516,64 @@ class AlphaBetaPlayer(IsolationPlayer):
                 each helper function or else your agent will timeout during
                 testing.
         """
-        if self.time_left() < self.TIMER_THRESHOLD:
-            raise SearchTimeout()
+        self.check_time()
+        _, best_move = self._max_value(game, game.active_player, depth,
+                                       alpha, beta)
+        return best_move
 
-        # TODO: finish this function!
-        raise NotImplementedError
+    def _max_value(self, game, player, plies_left, alpha, beta):
+        self.check_time()
+        log = get_log(plies_left, 'MAX')
+        best_move = self.NO_MOVE
+        best_score = _MIN_SCORE
+        moves = game.get_legal_moves()
+        # log(f"legal moves {moves}")
+        for move in moves:
+            current_game = game.forecast_move(move)
+
+            if plies_left <= 1:
+                current_score = self.score(current_game, player)
+            else:
+                current_alpha = max(best_score, alpha)
+                current_score, _ = self._min_value(current_game,
+                                                   player, plies_left-1,
+                                                   current_alpha, beta)
+            if current_score > best_score:
+                best_score = current_score
+                best_move = move
+            if best_score >= beta:
+                # log(f"{move} beta={beta}, best_score={best_score} cutting off...")
+                break
+        # log(f"{best_move} -> {best_score}")
+        return best_score, best_move
+
+    def _min_value(self, game, player, plies_left, alpha, beta):
+        self.check_time()
+        log = get_log(plies_left, 'MIN')
+        best_move = self.NO_MOVE
+        best_score = _MAX_SCORE
+        moves = game.get_legal_moves()
+        # log(f"legal moves {moves}")
+        for move in moves:
+            current_game = game.forecast_move(move)
+            if plies_left <= 1:
+                current_score = self.score(current_game, player)
+            else:
+                current_beta = min(best_score, beta)
+                current_score, _ = self._max_value(current_game,
+                                                   player, plies_left-1,
+                                                   alpha, current_beta)
+            if current_score < best_score:
+                best_score = current_score
+                best_move = move
+            if best_score <= alpha:
+                # log(f"{move} alpha={alpha}, best_score={best_score} cutting off...")
+                break
+        # log(f"{best_move} -> {best_score}")
+        return best_score, best_move
+
+def get_log(intend, prefix):
+    def log(msg):
+        pass
+        # print('>'*intend+f' {prefix} '+msg)
+    return log
