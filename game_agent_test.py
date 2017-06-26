@@ -1,7 +1,7 @@
 import unittest
 from isolation import Board
 from game_agent import AlphaBetaPlayer, custom_score, custom_score_2, custom_score_3
-from game_agent import get_mutation_hashes, check_partition
+from game_agent import get_mutation_hashes, take_longest_path
 
 
 class TestGameBoard(unittest.TestCase):
@@ -25,7 +25,7 @@ class TestGameBoard(unittest.TestCase):
         # for board in self.game.mutations():
         #     print(board.to_string())
 
-    def test_check_partition(self):
+    def test_take_longest_path(self):
         """
           0 1 2 3 4 5 6 7
         0 x
@@ -65,27 +65,27 @@ class TestGameBoard(unittest.TestCase):
 
         blank_spaces.add((6, 0))
         unreachable_spaces = take_longest_path(location, blank_spaces)
-        self.assertEqual({(0, 1),}, unreachable_spaces)
+        self.assertEqual({(0, 1),(6, 0)}, unreachable_spaces)
         max_move_count = len(blank_spaces) - len(unreachable_spaces)
-        self.assertEqual(6, max_move_count)
+        self.assertEqual(9, max_move_count)
 
         blank_spaces.add((6, 7))
         unreachable_spaces = take_longest_path(location, blank_spaces)
-        self.assertEqual({(0, 1), (6, 7)}, unreachable_spaces)
+        self.assertEqual({(0, 1), (6, 7), (6, 0)}, unreachable_spaces)
         max_move_count = len(blank_spaces) - len(unreachable_spaces)
-        self.assertEqual(6, max_move_count)
+        self.assertEqual(9, max_move_count)
 
         blank_spaces.add((2, 6))
         unreachable_spaces = take_longest_path(location, blank_spaces)
-        self.assertEqual({(0, 1), (6, 7)}, unreachable_spaces)
+        self.assertEqual({(0, 1), (6, 7), (6, 0)}, unreachable_spaces)
         max_move_count = len(blank_spaces) - len(unreachable_spaces)
-        self.assertEqual(6, max_move_count)
+        self.assertEqual(10, max_move_count)
 
         blank_spaces.add((0, 7))
         unreachable_spaces = take_longest_path(location, blank_spaces)
-        self.assertEqual({(0, 1), (6, 7)}, unreachable_spaces)
+        self.assertEqual({(0, 1), (6, 7), (6, 0)}, unreachable_spaces)
         max_move_count = len(blank_spaces) - len(unreachable_spaces)
-        self.assertEqual(7, max_move_count)
+        self.assertEqual(11, max_move_count)
 
 if __name__ == '__main__':
     unittest.main()
