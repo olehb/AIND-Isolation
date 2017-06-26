@@ -54,9 +54,11 @@ def custom_score(game, player):
     # 35 is average number of moves per 7x7 game
     aggressiveness = 1.5+game.move_count/35
 
-    own_deep_moves = deep_moves_available(own_location, blank_spaces)
-    opp_deep_moves = deep_moves_available(opp_location, blank_spaces)
-    score = float(own_deep_moves - aggressiveness*opp_deep_moves)
+    max_level = 4 if len(blank_spaces) < game.width*game.height/2 else 2
+
+    own_deep_moves = deep_moves_available(own_location, blank_spaces, max_level=max_level)
+    opp_deep_moves = deep_moves_available(opp_location, blank_spaces, max_level=max_level)
+    score = float(own_deep_moves - aggressiveness*opp_deep_moves)/(len(blank_spaces)*max_level)
 
     # THIS DOESN'T WORK.
     # Even though take_longest_path function works as expected, it doesn't
@@ -127,7 +129,7 @@ def take_longest_path(location, blank_spaces):
 
 
 _MAX_LEVEL = 2
-def deep_moves_available(location, blank_spaces, level=0):
+def deep_moves_available(location, blank_spaces, level=0, max_level=2):
     """
     This function calculates total available moves up to _MAX_LEVEL deep
     Some cells of the board may be count more than once here, but this is fine
@@ -148,10 +150,10 @@ def deep_moves_available(location, blank_spaces, level=0):
     """
     moves = get_moves(location, blank_spaces)
     total_reachable = sum([score_move(move) for move in moves])
-    if level >= _MAX_LEVEL:
+    if level >= max_level:
         return total_reachable
     for move in moves:
-        reachable_from_here = deep_moves_available(move, blank_spaces - {move}, level+1)
+        reachable_from_here = deep_moves_available(move, blank_spaces - {move}, level+1, max_level)
         total_reachable += reachable_from_here
     return total_reachable
 
