@@ -51,19 +51,23 @@ def custom_score(game, player):
     own_location = game.get_player_location(player)
     opp_location = game.get_player_location(game.get_opponent(player))
     # Getting slightly more aggressive towards the end of the game
-    # 35 is average number of moves per 7x7 game
+    # 35 is an average number of moves for 7x7 game (found experimentally)
     aggressiveness = 1.5+game.move_count/35
 
+    # Searching deeper towards the end of the game
     max_level = 4 if len(blank_spaces) < game.width*game.height/2 else 2
 
-    own_deep_moves = deep_moves_available(own_location, blank_spaces, max_level=max_level)
-    opp_deep_moves = deep_moves_available(opp_location, blank_spaces, max_level=max_level)
+    own_deep_moves = deep_moves_available(own_location, blank_spaces, max_level)
+    opp_deep_moves = deep_moves_available(opp_location, blank_spaces, max_level)
+    # Need to normalize over the # of blank spaces to smoothen the "jump" when
+    # switching from 2 to 4 levels of search
     score = float(own_deep_moves - aggressiveness*opp_deep_moves)/(len(blank_spaces)*max_level)
 
     # THIS DOESN'T WORK.
     # Even though take_longest_path function works as expected, it doesn't
-    # produce a good heuristics for isolation game. Algo based on take_longest_path
-    # proved to be less efficient than some other simplest heuristics.
+    # produce a good heuristic for the game of isolation. Algorithm based on 
+    # take_longest_path proved to be less efficient than some other simplest 
+    # heuristics.
     #
     # own_blank_spaces = take_longest_path(own_location, blank_spaces)
     # opp_blank_spaces = take_longest_path(opp_location, blank_spaces)
@@ -128,10 +132,9 @@ def take_longest_path(location, blank_spaces):
     return min_blank_spaces
 
 
-_MAX_LEVEL = 2
-def deep_moves_available(location, blank_spaces, level=0, max_level=2):
+def deep_moves_available(location, blank_spaces, depth=2):
     """
-    This function calculates total available moves up to _MAX_LEVEL deep
+    This function calculates total available moves up to max_level deep
     Some cells of the board may be count more than once here, but this is fine
     because the idea is to get a measure of "freedom" for a given player's position
 
@@ -143,26 +146,33 @@ def deep_moves_available(location, blank_spaces, level=0, max_level=2):
         Blank spaces available on the board
     level : int
         Current depth level
+    max_level: int
+        Max number of levels to search, not including current one.
     Returns
     -------
     int
-        Total number of moves available up _MAX_LEVEL deep
+        Total number of moves available up max_level deep
     """
     moves = get_moves(location, blank_spaces)
     total_reachable = sum([score_move(move) for move in moves])
-    if level >= max_level:
+    if depth < 0:
         return total_reachable
+    blank_spaces_left = blank_spaces - moves
     for move in moves:
-        reachable_from_here = deep_moves_available(move, blank_spaces - {move}, level+1, max_level)
+        reachable_from_here = deep_moves_available(move, blank_spaces_left, depth-1)
         total_reachable += reachable_from_here
     return total_reachable
 
 
 def score_move(move):
+    """
+    Score each move. Border moves are penalized
+    """
     return 0.5 if is_border_move(move) else 1
 
+_BOARD_POSITIONS = [0, 6]
 def is_border_move(move):
-    return move[0] in [0, 7] or move[1] in [0, 7]
+    return move[0] in _BOARD_POSITIONS or move[1] in _BOARD_POSITIONS
 
 
 directions = [(-2, -1), (-2, 1), (-1, -2), (-1, 2),
@@ -173,14 +183,14 @@ def get_moves(move, blank_spaces):
     """
     r, c = move
     moves = [(r + dr, c + dc) for dr, dc in directions]
-    return [m for m in moves if m in blank_spaces]
+    return {m for m in moves if m in blank_spaces}
 
 
 def custom_score_3(game, player):
     """Calculate the heuristic value of a game state from the point of view
     of the given player.
 
-    This function penalizes border moves for player
+    This function penalizes border moves
 
     Parameters
     ----------
@@ -219,7 +229,13 @@ def num_border_moves(moves, game):
                or move[1] in [0, game.width-1])
 
 def mutate_state(mutator, state, width):
+    """
+    This function takes board state and trasforms it.
+    Example transformations: rotate 90 degrees, flip diagonally
+    """
     # Mutating game board
+    # 3 last elements of the "state" contains player's info,
+    # thus have to be transformed separately.
     mutated_state = [state[mutator(i, width)] for i in range(len(state)-3)]
     # Transforming player states accordingly
     for i in range(-3, 0):
@@ -230,6 +246,9 @@ def hash_state(state):
     return str(state).__hash__()
 
 def get_mutation_hashes(game):
+    """
+    Returns hashes for mutated board states.
+    """
     yield game.hash()
     width = game.width
     # Flip game board diagonally
