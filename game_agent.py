@@ -51,7 +51,7 @@ def custom_score(game, player):
     own_location = game.get_player_location(player)
     opp_location = game.get_player_location(game.get_opponent(player))
     # Getting slightly more aggressive towards the end of the game
-    # 35 is the average number of moves per 7x7 game
+    # 35 is an average number of moves for 7x7 game (found experimentally)
     aggressiveness = 1.5+game.move_count/35
 
     # Searching deeper towards the end of the game
@@ -65,8 +65,9 @@ def custom_score(game, player):
 
     # THIS DOESN'T WORK.
     # Even though take_longest_path function works as expected, it doesn't
-    # produce a good heuristics for isolation game. Algorithm based on take_longest_path
-    # proved to be less efficient than some other simplest heuristics.
+    # produce a good heuristic for the game of isolation. Algorithm based on 
+    # take_longest_path proved to be less efficient than some other simplest 
+    # heuristics.
     #
     # own_blank_spaces = take_longest_path(own_location, blank_spaces)
     # opp_blank_spaces = take_longest_path(opp_location, blank_spaces)
