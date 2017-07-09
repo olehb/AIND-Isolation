@@ -3,7 +3,7 @@ test your agent's strength against a set of known agents using tournament.py
 and include the results in your report.
 """
 
-from random import random, triangular
+from random import random
 
 _MAX_SCORE = float("inf")
 _MIN_SCORE = float("-inf")
@@ -55,7 +55,7 @@ def custom_score(game, player):
     aggressiveness = 1.5+game.move_count/35
 
     # Searching deeper towards the end of the game
-    max_level = 3 if len(blank_spaces) < game.width*game.height/2 else 1
+    max_level = 4 if len(blank_spaces) < game.width*game.height/2 else 2
 
     own_deep_moves = deep_moves_available(own_location, blank_spaces, max_level)
     opp_deep_moves = deep_moves_available(opp_location, blank_spaces, max_level)
@@ -65,8 +65,8 @@ def custom_score(game, player):
 
     # THIS DOESN'T WORK.
     # Even though take_longest_path function works as expected, it doesn't
-    # produce a good heuristic for the game of isolation. Algorithm based on 
-    # take_longest_path proved to be less efficient than some other simplest 
+    # produce a good heuristic for the game of isolation. Algorithm based on
+    # take_longest_path proved to be less efficient than some other simplest
     # heuristics.
     #
     # own_blank_spaces = take_longest_path(own_location, blank_spaces)
@@ -76,8 +76,8 @@ def custom_score(game, player):
 
 
 def custom_score_2(game, player):
-    """Calculate the heuristic value of a game state from the point of view
-    of the given player.
+    """Calculate the heuristic value of a game state from the point of
+    view of the given player.
 
     Note: this function should be called from within a Player instance as
     `self.score()` -- you should not need to call this function directly.
@@ -135,6 +135,7 @@ def take_longest_path(location, blank_spaces):
 def deep_moves_available(location, blank_spaces, depth=2):
     """
     This function counts and scores total available moves several levels deep.
+    Each non-board move is counted as 1, board moves are counted as 0.5
 
     Parameters
     ----------
@@ -148,11 +149,11 @@ def deep_moves_available(location, blank_spaces, depth=2):
     -------
     int
         Total number of moves available "depth" level deep.
-        Board moves are count as 0.5
+        Board moves are counted as 0.5
     """
     moves = get_moves(location, blank_spaces)
     total_reachable = sum([score_move(move) for move in moves])
-    if depth < 0:
+    if depth <= 0:
         return total_reachable
     blank_spaces_left = blank_spaces - moves
     for move in moves:
@@ -166,6 +167,7 @@ def score_move(move):
     Score each move. Border moves are penalized
     """
     return 0.5 if is_border_move(move) else 1
+
 
 _BORDER_POSITIONS = [0, 6]
 def is_border_move(move):
@@ -217,11 +219,13 @@ def custom_score_3(game, player):
     return float(len(own_moves)-border_move_discount*num_border_moves(own_moves, game)
                  - len(opp_moves)+border_move_discount*num_border_moves(opp_moves, game))
 
+
 def num_border_moves(moves, game):
     """
     Utility function to calculate number of border moves
     """
     return sum(1 for move in moves if is_border_move(move))
+
 
 class IsolationPlayer:
     """Base class for minimax and alphabeta agents -- this class is never
@@ -302,7 +306,6 @@ class MinimaxPlayer(IsolationPlayer):
             # The try/except block will automatically catch the exception
             # raised when the timer is about to expire.
             return self.minimax(game, self.search_depth)
-
         except SearchTimeout:
             pass  # Handle any actions required after timeout as needed
 
@@ -351,7 +354,6 @@ class MinimaxPlayer(IsolationPlayer):
         self.check_time()
 
         _, best_move = self._max_value(game, game.active_player, depth)
-        # Uncomment lines below to never forfeit the game
         if best_move == self.NO_MOVE and len(game.get_legal_moves()) > 0:
             return game.get_legal_moves()[0]
         return best_move
@@ -500,7 +502,7 @@ class AlphaBetaPlayer(IsolationPlayer):
 
     def _max_value(self, game, player, plies_left, alpha, beta):
         self.check_time()
-        log = get_log(plies_left, 'MAX')
+        # log = get_log(plies_left, 'MAX')
         best_move = self.NO_MOVE
         best_score = _MIN_SCORE
         moves = game.get_legal_moves()
@@ -526,7 +528,7 @@ class AlphaBetaPlayer(IsolationPlayer):
 
     def _min_value(self, game, player, plies_left, alpha, beta):
         self.check_time()
-        log = get_log(plies_left, 'MIN')
+        # log = get_log(plies_left, 'MIN')
         best_move = self.NO_MOVE
         best_score = _MAX_SCORE
         moves = game.get_legal_moves()
@@ -549,8 +551,8 @@ class AlphaBetaPlayer(IsolationPlayer):
         # log(f"{best_move} -> {best_score}")
         return best_score, best_move
 
+
 def get_log(intend, prefix):
     def log(msg):
-        pass
-        # print('>'*intend+f' {prefix} '+msg)
+        print('>'*intend+f' {prefix} '+msg)
     return log
