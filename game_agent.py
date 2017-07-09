@@ -157,7 +157,7 @@ def deep_moves_available(location, blank_spaces, depth=2):
         return total_reachable
     blank_spaces_left = blank_spaces - moves
     for move in moves:
-        reachable_from_here = deep_moves_available(move, blank_spaces-{move}, depth-1)
+        reachable_from_here = deep_moves_available(move, blank_spaces_left, depth-1)
         total_reachable += reachable_from_here
     return total_reachable
 
@@ -444,8 +444,6 @@ class AlphaBetaPlayer(IsolationPlayer):
                 if move != self.NO_MOVE:
                     best_move = move
         except SearchTimeout:
-            if best_move == self.NO_MOVE:
-                print("Could not found a move!!!")
             pass  # Handle any actions required after timeout as needed
 
         # Return the best move from the last completed search iteration
