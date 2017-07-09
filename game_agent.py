@@ -55,7 +55,8 @@ def custom_score(game, player):
     aggressiveness = 1.5+game.move_count/35
 
     # Searching deeper towards the end of the game
-    max_level = 4 if len(blank_spaces) < game.width*game.height/2 else 2
+    # max_level = 4 if len(blank_spaces) < game.width*game.height/2 else 2
+    max_level = 2
 
     own_deep_moves = deep_moves_available(own_location, blank_spaces, max_level)
     opp_deep_moves = deep_moves_available(opp_location, blank_spaces, max_level)
@@ -134,9 +135,7 @@ def take_longest_path(location, blank_spaces):
 
 def deep_moves_available(location, blank_spaces, depth=2):
     """
-    This function calculates total available moves up to max_level deep
-    Some cells of the board may be count more than once here, but this is fine
-    because the idea is to get a measure of "freedom" for a given player's position
+    This function counts and scores total available moves several levels deep.
 
     Parameters
     ----------
@@ -144,14 +143,13 @@ def deep_moves_available(location, blank_spaces, depth=2):
         Player's location
     blank_spaces : set(set(int, int))
         Blank spaces available on the board
-    level : int
+    depth : int
         Current depth level
-    max_level: int
-        Max number of levels to search, not including current one.
     Returns
     -------
     int
-        Total number of moves available up max_level deep
+        Total number of moves available "depth" level deep.
+        Board moves are count as 0.5
     """
     moves = get_moves(location, blank_spaces)
     total_reachable = sum([score_move(move) for move in moves])
@@ -159,7 +157,7 @@ def deep_moves_available(location, blank_spaces, depth=2):
         return total_reachable
     blank_spaces_left = blank_spaces - moves
     for move in moves:
-        reachable_from_here = deep_moves_available(move, blank_spaces_left, depth-1)
+        reachable_from_here = deep_moves_available(move, blank_spaces-{move}, depth-1)
         total_reachable += reachable_from_here
     return total_reachable
 
@@ -224,46 +222,7 @@ def num_border_moves(moves, game):
     """
     Utility function to calculate number of border moves
     """
-    return sum(1 for move in moves
-               if move[0] in [0, game.height-1]
-               or move[1] in [0, game.width-1])
-
-def mutate_state(mutator, state, width):
-    """
-    This function takes board state and trasforms it.
-    Example transformations: rotate 90 degrees, flip diagonally
-    """
-    # Mutating game board
-    # 3 last elements of the "state" contains player's info,
-    # thus have to be transformed separately.
-    mutated_state = [state[mutator(i, width)] for i in range(len(state)-3)]
-    # Transforming player states accordingly
-    for i in range(-3, 0):
-        mutated_state.append(mutator(state[i], width))
-    return mutated_state
-
-def hash_state(state):
-    return str(state).__hash__()
-
-def get_mutation_hashes(game):
-    """
-    Returns hashes for mutated board states.
-    """
-    yield game.hash()
-    width = game.width
-    # Flip game board diagonally
-    diag = lambda i, w: (i%w)*w + i//w if i is not None else None
-    # Rotate game board
-    rot = lambda i, w: (w - 1 -(i%w))*w + i//w if i is not None else None
-    mutated_state = game._board_state
-    # Otherwise it's failing with "Exception: unsupported operand type(s) for %: 'NoneType' and 'int'"
-    if mutated_state is None or width is None:
-        return
-    for _ in range(3):
-        yield hash_state(mutate_state(diag, mutated_state, width))
-        mutated_state = mutate_state(rot, mutated_state, width)
-        yield hash_state(mutated_state)
-
+    return sum(1 for move in moves if is_border_move(move))
 
 class IsolationPlayer:
     """Base class for minimax and alphabeta agents -- this class is never
@@ -485,6 +444,8 @@ class AlphaBetaPlayer(IsolationPlayer):
                 if move != self.NO_MOVE:
                     best_move = move
         except SearchTimeout:
+            if best_move == self.NO_MOVE:
+                print("Could not found a move!!!")
             pass  # Handle any actions required after timeout as needed
 
         # Return the best move from the last completed search iteration
