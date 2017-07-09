@@ -57,8 +57,8 @@ def custom_score(game, player):
     # Searching deeper towards the end of the game
     max_level = 4 if len(blank_spaces) < game.width*game.height/2 else 2
 
-    own_deep_moves = deep_moves_available(own_location, blank_spaces, max_level=max_level)
-    opp_deep_moves = deep_moves_available(opp_location, blank_spaces, max_level=max_level)
+    own_deep_moves = deep_moves_available(own_location, blank_spaces, max_level)
+    opp_deep_moves = deep_moves_available(opp_location, blank_spaces, max_level)
     # Need to normalize over the # of blank spaces to smoothen the "jump" when
     # switching from 2 to 4 levels of search
     score = float(own_deep_moves - aggressiveness*opp_deep_moves)/(len(blank_spaces)*max_level)
@@ -132,7 +132,7 @@ def take_longest_path(location, blank_spaces):
     return min_blank_spaces
 
 
-def deep_moves_available(location, blank_spaces, level=0, max_level=2):
+def deep_moves_available(location, blank_spaces, depth=2):
     """
     This function calculates total available moves up to max_level deep
     Some cells of the board may be count more than once here, but this is fine
@@ -155,10 +155,11 @@ def deep_moves_available(location, blank_spaces, level=0, max_level=2):
     """
     moves = get_moves(location, blank_spaces)
     total_reachable = sum([score_move(move) for move in moves])
-    if level >= max_level:
+    if depth < 0:
         return total_reachable
+    blank_spaces_left = blank_spaces - moves
     for move in moves:
-        reachable_from_here = deep_moves_available(move, blank_spaces - {move}, level+1, max_level)
+        reachable_from_here = deep_moves_available(move, blank_spaces_left, depth-1)
         total_reachable += reachable_from_here
     return total_reachable
 
@@ -169,8 +170,9 @@ def score_move(move):
     """
     return 0.5 if is_border_move(move) else 1
 
+_BOARD_POSITIONS = [0, 6]
 def is_border_move(move):
-    return move[0] in [0, 7] or move[1] in [0, 7]
+    return move[0] in _BOARD_POSITIONS or move[1] in _BOARD_POSITIONS
 
 
 directions = [(-2, -1), (-2, 1), (-1, -2), (-1, 2),
@@ -181,7 +183,7 @@ def get_moves(move, blank_spaces):
     """
     r, c = move
     moves = [(r + dr, c + dc) for dr, dc in directions]
-    return [m for m in moves if m in blank_spaces]
+    return {m for m in moves if m in blank_spaces}
 
 
 def custom_score_3(game, player):
