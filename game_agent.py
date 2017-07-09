@@ -55,10 +55,10 @@ def custom_score(game, player):
     aggressiveness = 1.5+game.move_count/35
 
     # Searching deeper towards the end of the game
-    max_level = 4 if len(blank_spaces) < game.width*game.height/2 else 2
+    max_level = 3 if len(blank_spaces) < game.width*game.height/2 else 1
 
-    own_deep_moves = deep_moves_available(own_location, blank_spaces, max_level=max_level)
-    opp_deep_moves = deep_moves_available(opp_location, blank_spaces, max_level=max_level)
+    own_deep_moves = deep_moves_available(own_location, blank_spaces, max_level)
+    opp_deep_moves = deep_moves_available(opp_location, blank_spaces, max_level)
     # Need to normalize over the # of blank spaces to smoothen the "jump" when
     # switching from 2 to 4 levels of search
     score = float(own_deep_moves - aggressiveness*opp_deep_moves)/(len(blank_spaces)*max_level)
@@ -132,11 +132,9 @@ def take_longest_path(location, blank_spaces):
     return min_blank_spaces
 
 
-def deep_moves_available(location, blank_spaces, level=0, max_level=2):
+def deep_moves_available(location, blank_spaces, depth=2):
     """
-    This function calculates total available moves up to max_level deep
-    Some cells of the board may be count more than once here, but this is fine
-    because the idea is to get a measure of "freedom" for a given player's position
+    This function counts and scores total available moves several levels deep.
 
     Parameters
     ----------
@@ -144,21 +142,21 @@ def deep_moves_available(location, blank_spaces, level=0, max_level=2):
         Player's location
     blank_spaces : set(set(int, int))
         Blank spaces available on the board
-    level : int
+    depth : int
         Current depth level
-    max_level: int
-        Max number of levels to search, not including current one.
     Returns
     -------
     int
-        Total number of moves available up max_level deep
+        Total number of moves available "depth" level deep.
+        Board moves are count as 0.5
     """
     moves = get_moves(location, blank_spaces)
     total_reachable = sum([score_move(move) for move in moves])
-    if level >= max_level:
+    if depth < 0:
         return total_reachable
+    blank_spaces_left = blank_spaces - moves
     for move in moves:
-        reachable_from_here = deep_moves_available(move, blank_spaces - {move}, level+1, max_level)
+        reachable_from_here = deep_moves_available(move, blank_spaces_left, depth-1)
         total_reachable += reachable_from_here
     return total_reachable
 
@@ -169,8 +167,9 @@ def score_move(move):
     """
     return 0.5 if is_border_move(move) else 1
 
+_BORDER_POSITIONS = [0, 6]
 def is_border_move(move):
-    return move[0] in [0, 7] or move[1] in [0, 7]
+    return move[0] in _BORDER_POSITIONS or move[1] in _BORDER_POSITIONS
 
 
 directions = [(-2, -1), (-2, 1), (-1, -2), (-1, 2),
@@ -181,7 +180,7 @@ def get_moves(move, blank_spaces):
     """
     r, c = move
     moves = [(r + dr, c + dc) for dr, dc in directions]
-    return [m for m in moves if m in blank_spaces]
+    return {m for m in moves if m in blank_spaces}
 
 
 def custom_score_3(game, player):
@@ -222,46 +221,7 @@ def num_border_moves(moves, game):
     """
     Utility function to calculate number of border moves
     """
-    return sum(1 for move in moves
-               if move[0] in [0, game.height-1]
-               or move[1] in [0, game.width-1])
-
-def mutate_state(mutator, state, width):
-    """
-    This function takes board state and trasforms it.
-    Example transformations: rotate 90 degrees, flip diagonally
-    """
-    # Mutating game board
-    # 3 last elements of the "state" contains player's info,
-    # thus have to be transformed separately.
-    mutated_state = [state[mutator(i, width)] for i in range(len(state)-3)]
-    # Transforming player states accordingly
-    for i in range(-3, 0):
-        mutated_state.append(mutator(state[i], width))
-    return mutated_state
-
-def hash_state(state):
-    return str(state).__hash__()
-
-def get_mutation_hashes(game):
-    """
-    Returns hashes for mutated board states.
-    """
-    yield game.hash()
-    width = game.width
-    # Flip game board diagonally
-    diag = lambda i, w: (i%w)*w + i//w if i is not None else None
-    # Rotate game board
-    rot = lambda i, w: (w - 1 -(i%w))*w + i//w if i is not None else None
-    mutated_state = game._board_state
-    # Otherwise it's failing with "Exception: unsupported operand type(s) for %: 'NoneType' and 'int'"
-    if mutated_state is None or width is None:
-        return
-    for _ in range(3):
-        yield hash_state(mutate_state(diag, mutated_state, width))
-        mutated_state = mutate_state(rot, mutated_state, width)
-        yield hash_state(mutated_state)
-
+    return sum(1 for move in moves if is_border_move(move))
 
 class IsolationPlayer:
     """Base class for minimax and alphabeta agents -- this class is never
