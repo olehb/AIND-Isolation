@@ -55,8 +55,7 @@ def custom_score(game, player):
     aggressiveness = 1.5+game.move_count/35
 
     # Searching deeper towards the end of the game
-    # max_level = 4 if len(blank_spaces) < game.width*game.height/2 else 2
-    max_level = 2
+    max_level = 3 if len(blank_spaces) < game.width*game.height/2 else 1
 
     own_deep_moves = deep_moves_available(own_location, blank_spaces, max_level)
     opp_deep_moves = deep_moves_available(opp_location, blank_spaces, max_level)
@@ -168,9 +167,9 @@ def score_move(move):
     """
     return 0.5 if is_border_move(move) else 1
 
-_BOARD_POSITIONS = [0, 6]
+_BORDER_POSITIONS = [0, 6]
 def is_border_move(move):
-    return move[0] in _BOARD_POSITIONS or move[1] in _BOARD_POSITIONS
+    return move[0] in _BORDER_POSITIONS or move[1] in _BORDER_POSITIONS
 
 
 directions = [(-2, -1), (-2, 1), (-1, -2), (-1, 2),
